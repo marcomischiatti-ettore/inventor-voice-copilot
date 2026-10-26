@@ -65,7 +65,7 @@ Permette di comandare la generazione e modifica di feature 3D direttamente a voc
 Clona il repository ed installa i pacchetti richiesti:
 
 ```powershell
-git clone https://github.com/<tuo-username>/inventor-voice-copilot.git
+git clone https://github.com/marcomischiatti-ettore/inventor-voice-copilot.git
 cd inventor-voice-copilot
 pip install -r requirements.txt
 ```
