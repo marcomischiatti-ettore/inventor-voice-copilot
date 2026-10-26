@@ -21,15 +21,33 @@
   - Gli angoli nelle API COM richiedono i **Radianti (rad)**: `angolo_inventor_rad = math.radians(angolo_deg)`.
 - Ogni modulo DEVE effettuare esplicitamente questa conversione prima di passare qualsiasi valore a metodi COM o parametri.
 
-## 3. Quotatura e Vincoli Geometrici
-- Tutti gli elementi dello schizzo (`PlanarSketch`) devono essere geometricamente vincolati prima dell'operazione di feature (estrusione, rivoluzione, foratura).
-- **Convenzioni di quotatura**:
-  - Quote principali posizionate rispetto agli assi principali o bordi esterni di riferimento simmetrico.
-  - Fori e tasche quotati a partire dai bordi di riferimento o dagli assi di simmetria.
-- **Vincoli geometrici obbligatori**:
-  - `GeometricConstraints.AddCoincident`: per vincolare centri o spigoli all'origine o assi.
-  - `GeometricConstraints.AddSymmetric`: per elementi speculari.
-  - `GeometricConstraints.AddHorizontal` / `AddVertical`: per allineamento.
+## 3. Quotatura e Vincoli Geometrici Obbligatori (Estratti da Esempi Reali IPT)
+- **Stato di Vincolo Tassativo**: Ogni schizzo (`PlanarSketch`) deve raggiungere lo stato `sketch.ConstraintStatus == 51713` (`kFullyConstrainedConstraintStatus`), garantendo:
+  - Tutte le linee di schizzo diventano **nere** (o colore di entità vincolata secondo il tema Inventor).
+  - La barra di stato di Inventor in basso a destra riporta la dicitura **"Completamente vincolato"**.
+  - Le quote parametriche grafiche (`DimensionConstraints`) sono **visibili ed editabili** direttamente nel canvas di Inventor (es. `d0 = 100 mm`, `d1 = 80 mm`).
+  
+- **Tecnica Rettangolo Centrato (da Esempio-002.ipt)**:
+  1. Creazione rettangolo con `SketchLines.AddAsTwoPointRectangle(p1, p2)`.
+  2. Aggiunta di due diagonali di costruzione (`Construction = True`) congiungenti i vertici opposti (`pt_bl -> pt_tr` e `pt_br -> pt_tl`).
+  3. Proiezione del punto d'origine: `proj_origin = sketch.AddByProjectingEntity(ComponentDefinition.WorkPoints.Item(1))`.
+  4. Vincolo coincidente tra l'origine proiettata e le due diagonali:
+     - `sketch.GeometricConstraints.AddCoincident(proj_origin, diag1)`
+     - `sketch.GeometricConstraints.AddCoincident(proj_origin, diag2)`
+  5. Quote parametriche grafiche con `sketch.DimensionConstraints.AddTwoPointDistance(..., 19203, text_pt, False)` (larghezza e altezza).
+  6. Esecuzione di `sketch.Solve()` per forzare il solver geometrico a consolidare lo stato `51713`.
+
+- **Tecnica Cerchio Centrato**:
+  1. Proiezione del punto d'origine: `proj_origin = sketch.AddByProjectingEntity(ComponentDefinition.WorkPoints.Item(1))`.
+  2. Creazione cerchio a `(0, 0)` con `SketchCircles.AddByCenterRadius(...)`.
+  3. Vincolo coincidente: `sketch.GeometricConstraints.AddCoincident(circle.CenterSketchPoint, proj_origin)`.
+  4. Quota diametro: `sketch.DimensionConstraints.AddDiameter(circle, text_pt, False)`.
+  5. Esecuzione di `sketch.Solve()`.
+
+- **Regole Standard di Foratura (Aziendali Utente)**:
+  - **Default Passante**: Se non diversamente specificato, ogni foro è **SEMPRE PASSANTE** (`AddDrilledByThroughAllExtent`) attraverso l'intero pezzo. Viene realizzato cieco solo se esplicitamente richiesto con la parola *"cieco"* o specificando una profondità numerica.
+  - **Filettatura Completa**: Nei fori filettati/maschiati, la filettatura copre sempre **l'intera lunghezza del foro** (`FullTapDepth = True`).
+  - **Posizionamento (X, Y)**: Supporto immediato delle coordinate relative all'origine (es. *"x50 y 50"*, *"x: 50 y: 50"*). Se non specificato o se indicato *"al centro"*, il foro viene vincolato rigidamente coincidente all'origine `(0, 0)`.
 
 ## 4. Denominazione e Gestione Parametri (fx)
 - Utilizzare parametri del modello (`ModelParameters`) o parametri utente (`UserParameters`) con nomenclatura semantica autoesplicativa in italiano/inglese standard:

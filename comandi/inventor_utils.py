@@ -14,6 +14,8 @@ from typing import Optional, Tuple, Any
 
 # Costanti Enums Autodesk Inventor
 kPartDocumentObject = 12290
+kFullyConstrainedConstraintStatus = 51713
+kAlignedDimension = 19203
 kPositiveExtentDirection = 20993
 kNegativeExtentDirection = 20994
 kSymmetricExtentDirection = 20995
@@ -55,23 +57,37 @@ def get_inventor_app():
 def get_or_create_part_doc(inv_app, visible: bool = True):
     """
     Restituisce il PartDocument attivo se presente, altrimenti ne crea uno nuovo visibile.
+    Imposta tassativamente le unita di misura in Millimetri (11269), cosicche tutte le
+    maschere di lavorazione (Foro, Estrusione, ecc.) mostrino mm e non cm.
     """
+    doc = None
     try:
         if inv_app.ActiveDocument and inv_app.ActiveDocumentType == kPartDocumentObject:
-            return inv_app.ActiveDocument
+            doc = inv_app.ActiveDocument
     except Exception:
         pass
+    if doc is None:
+        try:
+            inv_app.Visible = True
+        except Exception:
+            pass
+        doc = inv_app.Documents.Add(kPartDocumentObject, "", visible)
+    
     try:
-        inv_app.Visible = True
+        # 11269 = kMillimeterLengthUnits, 11279 = kDegreeAngleUnits
+        doc.UnitsOfMeasure.LengthUnits = 11269
+        doc.UnitsOfMeasure.AngleUnits = 11279
     except Exception:
         pass
-    return inv_app.Documents.Add(kPartDocumentObject, "", visible)
+    return doc
 
 
 def crea_schizzo_rettangolare_centrato(part_doc, larghezza_mm: float, altezza_mm: float, piano_indice: int = 3):
     """
     Crea uno schizzo sul piano indicato (default 3: XY Plane) con un rettangolo
-    perfettamente centrato e simmetrico sull'origine (0, 0, 0), come da stile_progettazione.md.
+    perfettamente centrato sull'origine (0, 0, 0), COMPLETAMENTE VINCOLATO (ConstraintStatus = 51713),
+    con linee nere, quote dimensionali visibili e diagonali di costruzione centrate,
+    esattamente secondo la convenzione estratta dai file di modello dell'utente (Esempio-002.ipt).
     """
     cd = part_doc.ComponentDefinition
     work_plane = cd.WorkPlanes.Item(piano_indice)
@@ -88,11 +104,44 @@ def crea_schizzo_rettangolare_centrato(part_doc, larghezza_mm: float, altezza_mm
     p1 = trans_geom.CreatePoint2d(-half_w, -half_h)
     p2 = trans_geom.CreatePoint2d(half_w, half_h)
     
-    # AddAsTwoPointRectangle crea automaticamente le 4 linee con i vincoli orizzontali e verticali
-    rect_lines = sketch.SketchLines.AddAsTwoPointRectangle(p1, p2)
+    # 1. 4 linee del rettangolo con vincoli orizzontali e verticali
+    lines = sketch.SketchLines.AddAsTwoPointRectangle(p1, p2)
+    l_bottom = lines.Item(1)
+    l_right  = lines.Item(2)
+    l_top    = lines.Item(3)
+    l_left   = lines.Item(4)
     
-    # Vincoli di simmetria rispetto all'origine:
-    # Aggiunge quote parametriche centrate o vincoli di simmetria se necessario
+    # 2. Due diagonali di costruzione che collegano i vertici opposti (come in Esempio-002)
+    diag1 = sketch.SketchLines.AddByTwoPoints(l_bottom.StartSketchPoint, l_top.StartSketchPoint)
+    diag1.Construction = True
+    
+    diag2 = sketch.SketchLines.AddByTwoPoints(l_bottom.EndSketchPoint, l_top.EndSketchPoint)
+    diag2.Construction = True
+    
+    # 3. Proiezione del punto d'origine del modello nello schizzo
+    proj_origin = sketch.AddByProjectingEntity(cd.WorkPoints.Item(1))
+    
+    # 4. Vincoli di coincidenza tra l'origine fissa e le due diagonali
+    sketch.GeometricConstraints.AddCoincident(proj_origin, diag1)
+    sketch.GeometricConstraints.AddCoincident(proj_origin, diag2)
+    
+    # 5. Quote parametriche grafiche visibili (AddTwoPointDistance, orientamento 19203)
+    tp_w = trans_geom.CreatePoint2d(0, -half_h - 1.5)
+    sketch.DimensionConstraints.AddTwoPointDistance(
+        l_bottom.StartSketchPoint, l_bottom.EndSketchPoint, kAlignedDimension, tp_w, False
+    )
+    
+    tp_h = trans_geom.CreatePoint2d(half_w + 1.5, 0)
+    sketch.DimensionConstraints.AddTwoPointDistance(
+        l_right.StartSketchPoint, l_right.EndSketchPoint, kAlignedDimension, tp_h, False
+    )
+    
+    # 6. Risoluzione e aggiornamento dello schizzo per garantire 51713
+    try:
+        sketch.Solve()
+    except Exception:
+        pass
+        
     profile = sketch.Profiles.AddForSolid()
     return sketch, profile
 
@@ -100,19 +149,32 @@ def crea_schizzo_rettangolare_centrato(part_doc, larghezza_mm: float, altezza_mm
 def crea_schizzo_circolare_centrato(part_doc, diametro_mm: float, piano_indice: int = 3):
     """
     Crea uno schizzo sul piano indicato (default 3: XY Plane) con un cerchio
-    avente centro vincolato coincidentemente all'origine (0, 0, 0).
+    avente centro vincolato coincidentemente all'origine (0, 0, 0), COMPLETAMENTE VINCOLATO (51713)
+    e quota diametro parametrica visibile.
     """
     cd = part_doc.ComponentDefinition
     work_plane = cd.WorkPlanes.Item(piano_indice)
     sketch = cd.Sketches.Add(work_plane)
     
     trans_geom = part_doc.Parent.TransientGeometry
-    centro = trans_geom.CreatePoint2d(0.0, 0.0)
     raggio_cm = mm_to_cm(diametro_mm) / 2.0
     
-    circle = sketch.SketchCircles.AddByCenterRadius(centro, raggio_cm)
+    # 1. Proiezione dell'origine
+    proj_origin = sketch.AddByProjectingEntity(cd.WorkPoints.Item(1))
+    
+    # 2. Cerchio con centro a (0, 0)
+    circle = sketch.SketchCircles.AddByCenterRadius(trans_geom.CreatePoint2d(0.0, 0.0), raggio_cm)
+    
+    # 3. Vincolo coincidente tra il centro del cerchio e l'origine proiettata
+    sketch.GeometricConstraints.AddCoincident(circle.CenterSketchPoint, proj_origin)
+    
+    # 4. Quota diametrale grafica visibile
+    tp = trans_geom.CreatePoint2d(raggio_cm + 1.0, raggio_cm + 1.0)
+    sketch.DimensionConstraints.AddDiameter(circle, tp, False)
+    
+    # 5. Risoluzione
     try:
-        sketch.GeometricConstraints.AddCoincident(sketch.OriginPoint, circle.CenterSketchPoint)
+        sketch.Solve()
     except Exception:
         pass
     

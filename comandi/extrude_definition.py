@@ -196,3 +196,7 @@ if __name__ == "__main__":
     for f in frasi:
         res = esegui_estrusione_avanzata(f, test_mode=True)
         print(f"Frase: '{f}' -> Dist: {res['distanza_cm_inventor']} cm, Sformo: {res['angolo_rad_inventor']} rad")
+
+
+# Alias per router
+esegui_comando = esegui_estrusione_avanzata

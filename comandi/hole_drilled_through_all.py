@@ -11,30 +11,40 @@ try:
     from comandi.inventor_utils import (
         mm_to_cm, get_inventor_app, get_or_create_part_doc,
         crea_schizzo_rettangolare_centrato,
-        kPositiveExtentDirection, kNegativeExtentDirection, kSymmetricExtentDirection, kJoinOperation
+        kPositiveExtentDirection, kPositiveExtentDirection, kSymmetricExtentDirection, kJoinOperation
     )
 except ImportError:
     from inventor_utils import (
         mm_to_cm, get_inventor_app, get_or_create_part_doc,
         crea_schizzo_rettangolare_centrato,
-        kPositiveExtentDirection, kNegativeExtentDirection, kSymmetricExtentDirection, kJoinOperation
+        kPositiveExtentDirection, kPositiveExtentDirection, kSymmetricExtentDirection, kJoinOperation
     )
 
 
 def analizza_frase_vocale(frase: str) -> Dict[str, Any]:
     f = frase.lower().strip()
     diametro_mm = 10.0
-    match_d = re.search(r'(?:diametro|d|foro)(?:\s*(?:di|a))?\s*(\d+(?:[.,]\d+)?)(?:\s*(?:mm|millimetri))?', f)
-    if match_d:
-        diametro_mm = float(match_d.group(1).replace(',', '.'))
+    match_m = re.search(r'\bm(\d+(?:[.,]\d+)?)\b', f)
+    if match_m:
+        diametro_mm = float(match_m.group(1).replace(',', '.'))
+    else:
+        match_d = re.search(r'(?:diametro|d|foro)?(?:\s*(?:di|a))?\s*(\d+(?:[.,]\d+)?)(?:\s*(?:mm|millimetri))', f)
+        if match_d:
+            diametro_mm = float(match_d.group(1).replace(',', '.'))
+        else:
+            match_d2 = re.search(r'(?:diametro|d|foro)(?:\s*(?:di|a))?\s*(\d+(?:[.,]\d+)?)', f)
+            if match_d2:
+                diametro_mm = float(match_d2.group(1).replace(',', '.'))
 
     pos_x_mm, pos_y_mm = 0.0, 0.0
-    match_coord = re.search(r'x\s*[:=]?\s*(-?\d+(?:[.,]\d+)?)\s*y\s*[:=]?\s*(-?\d+(?:[.,]\d+)?)', f)
-    if match_coord:
-        pos_x_mm = float(match_coord.group(1).replace(',', '.'))
-        pos_y_mm = float(match_coord.group(2).replace(',', '.'))
+    match_x = re.search(r'\bx\s*[:=]?\s*(-?\d+(?:[.,]\d+)?)\b', f)
+    match_y = re.search(r'\by\s*[:=]?\s*(-?\d+(?:[.,]\d+)?)\b', f)
+    if match_x:
+        pos_x_mm = float(match_x.group(1).replace(',', '.'))
+    if match_y:
+        pos_y_mm = float(match_y.group(1).replace(',', '.'))
 
-    direzione = kNegativeExtentDirection
+    direzione = kPositiveExtentDirection
     if "entrambi" in f or "simmetric" in f:
         direzione = kSymmetricExtentDirection
 

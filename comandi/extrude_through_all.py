@@ -193,3 +193,7 @@ if __name__ == "__main__":
     for f in frasi:
         res = esegui_estrusione_passante(f, test_mode=True)
         print(f"Frase: '{f}' -> Dir: {res['parametri_estratti']['direzione']}, Op: {res['parametri_estratti']['operazione']}")
+
+
+# Alias per router
+esegui_comando = esegui_estrusione_passante

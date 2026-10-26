@@ -74,31 +74,39 @@ def analizza_frase_vocale(frase: str) -> Dict[str, Any]:
     altezza_base = 30.0   # default mm
     distanza_mm = 20.0    # default mm
 
+    # 1. Match 3D tipo '200x100x10' o '200 per 100 per 10'
     match_3d = re.search(r'(\d+(?:[.,]\d+)?)\s*(?:per|x|\*)\s*(\d+(?:[.,]\d+)?)\s*(?:per|x|\*)\s*(\d+(?:[.,]\d+)?)', f)
     if match_3d:
         larghezza_base = float(match_3d.group(1).replace(',', '.'))
         altezza_base = float(match_3d.group(2).replace(',', '.'))
         distanza_mm = float(match_3d.group(3).replace(',', '.'))
     else:
+        # 2. Match spessore con prefissi tecnici: sp, sp., spessore, thk, s, h, alt, prof
+        # Es. 'piastra 200x100 sp10', 'sp. 10', 's10', 'spessore 10'
+        match_sp = re.search(r'\b(?:sp|sp\.|spessore|spess|thk|s|alt|altezza|h|prof|profondit[àa])\s*[:=.]?\s*(\d+(?:[.,]\d+)?)(?:\s*(?:mm|millimetri))?\b', f)
+        if match_sp:
+            distanza_mm = float(match_sp.group(1).replace(',', '.'))
+
+        # 3. Match 2D base x altezza
         match_dim_rett = re.search(r'(?:base|rettangolo|profilo|piastra|lastra)?\s*(\d+(?:[.,]\d+)?)\s*(?:per|x|\*)\s*(\d+(?:[.,]\d+)?)', f)
         if match_dim_rett:
             larghezza_base = float(match_dim_rett.group(1).replace(',', '.'))
             altezza_base = float(match_dim_rett.group(2).replace(',', '.'))
 
-        patterns_distanza = [
-            r'(?:estrundi|estrusione|estrudi|profondit[àa]|spessore|altezza|distanza|lunghezza)(?:\s+di|\s+a)?\s+(\d+(?:[.,]\d+)?)(?:\s*(?:mm|millimetri))?',
-            r'(\d+(?:[.,]\d+)?)\s*(?:mm|millimetri)\s*(?:di\s+estrusione|in\s+altezza|in\s+profondit[àa])?',
-            r'(?:di\s+)?(\d+(?:[.,]\d+)?)\s*(?:mm|millimetri)'
-        ]
-        
-        for pat in patterns_distanza:
-            m = re.search(pat, f)
-            if m:
-                val = float(m.group(1).replace(',', '.'))
-                if match_dim_rett and (val == larghezza_base or val == altezza_base):
-                    continue
-                distanza_mm = val
-                break
+        if not match_sp:
+            patterns_distanza = [
+                r'(?:estrundi|estrusione|estrudi|distanza|lunghezza)(?:\s+di|\s+a)?\s+(\d+(?:[.,]\d+)?)(?:\s*(?:mm|millimetri))?',
+                r'(\d+(?:[.,]\d+)?)\s*(?:mm|millimetri)\s*(?:di\s+estrusione|in\s+altezza|in\s+profondit[àa])?',
+                r'(?:di\s+)?(\d+(?:[.,]\d+)?)\s*(?:mm|millimetri)'
+            ]
+            for pat in patterns_distanza:
+                m = re.search(pat, f)
+                if m:
+                    val = float(m.group(1).replace(',', '.'))
+                    if match_dim_rett and (val == larghezza_base or val == altezza_base):
+                        continue
+                    distanza_mm = val
+                    break
 
     return {
         "distanza_mm": distanza_mm,

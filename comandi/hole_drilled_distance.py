@@ -24,7 +24,7 @@ try:
         get_or_create_part_doc,
         crea_schizzo_rettangolare_centrato,
         kPositiveExtentDirection,
-        kNegativeExtentDirection,
+        kPositiveExtentDirection,
         kJoinOperation
     )
 except ImportError:
@@ -35,7 +35,7 @@ except ImportError:
         get_or_create_part_doc,
         crea_schizzo_rettangolare_centrato,
         kPositiveExtentDirection,
-        kNegativeExtentDirection,
+        kPositiveExtentDirection,
         kJoinOperation
     )
 
@@ -86,10 +86,12 @@ def analizza_frase_vocale(frase: str) -> Dict[str, Any]:
     # 5. Coordinate centro foro (default centrato su origine 0, 0)
     pos_x_mm = 0.0
     pos_y_mm = 0.0
-    match_coord = re.search(r'x\s*[:=]?\s*(-?\d+(?:[.,]\d+)?)\s*y\s*[:=]?\s*(-?\d+(?:[.,]\d+)?)', f)
-    if match_coord:
-        pos_x_mm = float(match_coord.group(1).replace(',', '.'))
-        pos_y_mm = float(match_coord.group(2).replace(',', '.'))
+    match_x = re.search(r'\bx\s*[:=]?\s*(-?\d+(?:[.,]\d+)?)\b', f)
+    match_y = re.search(r'\by\s*[:=]?\s*(-?\d+(?:[.,]\d+)?)\b', f)
+    if match_x:
+        pos_x_mm = float(match_x.group(1).replace(',', '.'))
+    if match_y:
+        pos_y_mm = float(match_y.group(1).replace(',', '.'))
 
     return {
         "diametro_mm": diametro_mm,
@@ -201,7 +203,7 @@ def esegui_foro_cieco(frase_vocale: str, test_mode: bool = False, part_doc=None)
             placement_def,
             diametro_cm,
             profondita_cm,
-            kNegativeExtentDirection,
+            kPositiveExtentDirection,
             fondo_piatto,
             angolo_punta_rad
         )
@@ -228,3 +230,7 @@ if __name__ == "__main__":
     for f in frasi:
         res = esegui_foro_cieco(f, test_mode=True)
         print(f"Frase: '{f}' -> D: {res['diametro_cm_inventor']} cm, H: {res['profondita_cm_inventor']} cm, Piatto: {res['parametri_estratti']['fondo_piatto']}")
+
+
+# Alias per router
+esegui_comando = esegui_foro_cieco

@@ -11,13 +11,13 @@ try:
     from comandi.inventor_utils import (
         mm_to_cm, deg_to_rad, get_inventor_app, get_or_create_part_doc,
         crea_schizzo_rettangolare_centrato,
-        kPositiveExtentDirection, kNegativeExtentDirection, kJoinOperation
+        kPositiveExtentDirection, kPositiveExtentDirection, kJoinOperation
     )
 except ImportError:
     from inventor_utils import (
         mm_to_cm, deg_to_rad, get_inventor_app, get_or_create_part_doc,
         crea_schizzo_rettangolare_centrato,
-        kPositiveExtentDirection, kNegativeExtentDirection, kJoinOperation
+        kPositiveExtentDirection, kPositiveExtentDirection, kJoinOperation
     )
 
 
@@ -119,7 +119,7 @@ def esegui_comando(frase_vocale: str, test_mode: bool = False, part_doc=None) ->
         coll.Add(sp)
         place_def = cd.Features.HoleFeatures.CreateSketchPlacementDefinition(coll)
         hole_feat = cd.Features.HoleFeatures.AddCBoreByDistanceExtent(
-            place_def, d_cm, cbd_cm, cbh_cm, h_cm, kNegativeExtentDirection, params["fondo_piatto"], deg_to_rad(118.0)
+            place_def, d_cm, cbd_cm, cbh_cm, h_cm, kPositiveExtentDirection, params["fondo_piatto"], deg_to_rad(118.0)
         )
 
         trans.End()

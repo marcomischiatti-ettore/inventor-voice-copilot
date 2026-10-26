@@ -27,11 +27,11 @@ ROUTING_COMANDI = [
     (r'(?:estrudi|estrusione|estrundi).*?(?:sformo|conico|inclinazione)', "extrude_definition"),
     (r'(?:estrudi|estrusione|estrundi|parallelepipedo|blocco|piastra|lastra|cubo|rettangolo)', "extrude_distance"),
 
-    # Hole
-    (r'(?:foro|foratura|svas).*?(?:svaso|svasat|conic)', "hole_csink_distance"),
-    (r'(?:foro|foratura|lamat).*?(?:lamatur|controforo|testa)', "hole_cbore_distance"),
-    (r'(?:foro|foratura).*?(?:passante|attraverso)', "hole_drilled_through_all"),
-    (r'(?:foro|foratura).*?(?:filettat|maschiat|avanzat)', "hole_definition"),
+    # Hole (priorità assoluta: 1. Filettati/Maschiati, 2. Svasati, 3. Lamati, 4. Passanti lisci, 5. Ciechi)
+    (r'(?:filettat|maschiat|\bm\d+\b)', "hole_definition"),
+    (r'(?:svas|svaso|svasatur)', "hole_csink_distance"),
+    (r'(?:lamat|lamatura|controfor)', "hole_cbore_distance"),
+    (r'(?:passante|attraverso)', "hole_drilled_through_all"),
     (r'(?:foro|foratura|cieco)', "hole_drilled_distance"),
 
     # Thread

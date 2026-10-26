@@ -178,3 +178,7 @@ if __name__ == "__main__":
     for f in frasi:
         res = esegui_estrusione_to_extent(f, test_mode=True)
         print(f"Frase: '{f}' -> Target: {res['parametri_estratti']['target_tipo']}, Op: {res['parametri_estratti']['operazione']}")
+
+
+# Alias per router
+esegui_comando = esegui_estrusione_to_extent
