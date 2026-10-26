@@ -1,0 +1,226 @@
+
+=====================================
+FILE: Esempio-001.ipt
+
+Schizzo: Schizzo16 (Piano: Piano XY)
+Stato Vincoli: COMPLETAMENTE VINCOLATO (kFullyConstrainedConstraintStatus)
+Vincoli Geometrici: Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83903232, Tipo_83902976, Tipo_83902976, Tipo_83902208, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900672, Tipo_83902720, Tipo_83904256
+Quote Dimensionali:
+  - Tipo_83905792 -> d68 = 200 mm (20.0)
+  - Tipo_83906560 -> d69 = 86 mm + 2 mm (8.799999999999999)
+  - Tipo_83905536 -> d114 = 64 mm (6.4)
+  - Tipo_83905792 -> d116 = 155 mm (15.5)
+
+Schizzo: Schizzo17 (Piano: <class 'win32com.client.CDispatch'>)
+Stato Vincoli: SCONOSCIUTO (kUnknownConstraintStatus)
+Vincoli Geometrici: Tipo_83900672, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83902208, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900672, Tipo_83900160
+Quote Dimensionali:
+  - Tipo_83906048 -> d76 = 45 gr (0.7853981633974483)
+  - Tipo_83906048 -> d77 = 90 gr (1.5707963267948966)
+  - Tipo_83906816 -> d78 = 75 mm (7.5)
+  - Tipo_83907072 -> d115 = 16,000 mm (1.5999999999999996)
+  - Tipo_83906560 -> d124 = 118,000 mm (11.8)
+
+Schizzo: Schizzo18 (Piano: <class 'win32com.client.CDispatch'>)
+Stato Vincoli: COMPLETAMENTE VINCOLATO (kFullyConstrainedConstraintStatus)
+Vincoli Geometrici: Tipo_83900672, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83903744, Tipo_83903744, Tipo_83903744
+Quote Dimensionali:
+  - Tipo_83906560 -> d82 = 25 mm (2.5)
+  - Tipo_83905536 -> d92 = 30 mm (3.0)
+  - Tipo_83905536 -> d93 = 25 mm (2.5)
+  - Tipo_83905536 -> d94 = 68 mm (6.800000000000001)
+
+Schizzo: Schizzo19 (Piano: <class 'win32com.client.CDispatch'>)
+Stato Vincoli: COMPLETAMENTE VINCOLATO (kFullyConstrainedConstraintStatus)
+Vincoli Geometrici: Tipo_83902464, Tipo_83902464
+Quote Dimensionali:
+  - Tipo_83905536 -> d125 = 10 mm (1.0)
+  - Tipo_83905536 -> d126 = 10,000 mm (0.9999999999999964)
+  - Tipo_83905536 -> d182 = 5 mm (0.5)
+  - Tipo_83905536 -> d183 = 42 mm (4.2)
+
+Schizzo: Schizzo20 (Piano: <class 'win32com.client.CDispatch'>)
+Stato Vincoli: COMPLETAMENTE VINCOLATO (kFullyConstrainedConstraintStatus)
+Vincoli Geometrici: Tipo_83900672, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83902208
+Quote Dimensionali:
+  - Tipo_83907072 -> d98 = 16,000 mm (1.5999999999999988)
+  - Tipo_83907072 -> d99 = d98 / 2 su (0.7999999999999994)
+  - Tipo_83906048 -> d100 = 30 gr (0.5235987755982988)
+
+Schizzo: Schizzo22 (Piano: <class 'win32com.client.CDispatch'>)
+Stato Vincoli: COMPLETAMENTE VINCOLATO (kFullyConstrainedConstraintStatus)
+Vincoli Geometrici: Tipo_83900160, Tipo_83900160, Tipo_83900672, Tipo_83900160, Tipo_83900160, Tipo_83900672, Tipo_83900160, Tipo_83900160, Tipo_83900672, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900672, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900672, Tipo_83900160, Tipo_83900160, Tipo_83901184, Tipo_83901184, Tipo_83901184, Tipo_83901184, Tipo_83901184, Tipo_83901184, Tipo_83901184, Tipo_83901696, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900672, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900672, Tipo_83900160, Tipo_83900160, Tipo_83900672, Tipo_83900160, Tipo_83900160, Tipo_83900672, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900672, Tipo_83900160, Tipo_83900160, Tipo_83901184, Tipo_83901184, Tipo_83901184, Tipo_83901184, Tipo_83901184, Tipo_83901184, Tipo_83901184, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83902208, Tipo_83902208, Tipo_83900672, Tipo_83900160, Tipo_83900160, Tipo_83900672, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83903744, Tipo_83901440, Tipo_83902464, Tipo_83902464
+Quote Dimensionali:
+  - Tipo_83907072 -> d117 = 4,4 mm (0.44000000000000006)
+  - Tipo_83907072 -> d119 = 3,5 mm (0.3499999999968777)
+  - Tipo_83906816 -> d176 = 62,000 mm (6.2)
+  - Tipo_83907072 -> d177 = d119 (0.3499999999968777)
+  - Tipo_83905536 -> d178 = d119 (0.3499999999968777)
+  - Tipo_83905792 -> d179 = 25,529 mm (2.5529394822508804)
+
+Schizzo: Schizzo24 (Piano: <class 'win32com.client.CDispatch'>)
+Stato Vincoli: COMPLETAMENTE VINCOLATO (kFullyConstrainedConstraintStatus)
+Vincoli Geometrici: Tipo_83900672, Tipo_83900672, Tipo_83900672
+Quote Dimensionali:
+  - Tipo_83907072 -> d138 = 3,5 mm (0.3499999999999996)
+  - Tipo_83907072 -> d139 = d138 / 2 su (0.1749999999999998)
+  - Tipo_83906560 -> d141 = 110 mm (11.0)
+
+Schizzo: Schizzo25 (Piano: <class 'win32com.client.CDispatch'>)
+Stato Vincoli: COMPLETAMENTE VINCOLATO (kFullyConstrainedConstraintStatus)
+Vincoli Geometrici: Tipo_83902464, Tipo_83902464
+Quote Dimensionali:
+  - Tipo_83905792 -> d127 = 48 mm (4.800000000000001)
+
+Schizzo: Schizzo26 (Piano: <class 'win32com.client.CDispatch'>)
+Stato Vincoli: COMPLETAMENTE VINCOLATO (kFullyConstrainedConstraintStatus)
+Vincoli Geometrici: Tipo_83900160, Tipo_83900160, Tipo_83900672, Tipo_83900160, Tipo_83900160, Tipo_83903744
+Quote Dimensionali:
+  - Tipo_83905536 -> d151 = 55 mm (5.5)
+  - Tipo_83906816 -> d152 = 110 mm (11.0)
+
+Schizzo: Schizzo27 (Piano: <class 'win32com.client.CDispatch'>)
+Stato Vincoli: COMPLETAMENTE VINCOLATO (kFullyConstrainedConstraintStatus)
+Vincoli Geometrici: 
+Quote Dimensionali:
+  - Tipo_83905536 -> d157 = 18 mm (1.8)
+  - Tipo_83905536 -> d159 = 5 mm (0.5)
+  - Tipo_83905536 -> d160 = 50 mm (5.0)
+  - Tipo_83905536 -> d161 = 5,25 mm (0.525)
+  - Tipo_83905536 -> d162 = 100 mm (10.0)
+  - Tipo_83905536 -> d163 = 17 mm (1.7000000000000002)
+  - Tipo_83905536 -> d164 = 60 mm (6.0)
+  - Tipo_83905536 -> d165 = 144 mm (14.4)
+  - Tipo_83905536 -> d167 = 16 mm (1.6)
+  - Tipo_83905536 -> d168 = 60 mm (6.0)
+
+Schizzo: Schizzo28 (Piano: <class 'win32com.client.CDispatch'>)
+Stato Vincoli: COMPLETAMENTE VINCOLATO (kFullyConstrainedConstraintStatus)
+Vincoli Geometrici: Tipo_83900160, Tipo_83900160, Tipo_83900672, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900672, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900672, Tipo_83900160, Tipo_83900160, Tipo_83900672, Tipo_83900160, Tipo_83900160, Tipo_83900672, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900672, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900672, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900672, Tipo_83900160, Tipo_83900160, Tipo_83900672, Tipo_83900160, Tipo_83900160, Tipo_83900672, Tipo_83900160, Tipo_83900160, Tipo_83901184, Tipo_83901184, Tipo_83901184, Tipo_83901184, Tipo_83901184, Tipo_83901184, Tipo_83901184, Tipo_83901184, Tipo_83901184, Tipo_83901184, Tipo_83901184, Tipo_83901184, Tipo_83901184, Tipo_83901184, Tipo_83901184
+Quote Dimensionali:
+  - Tipo_83907072 -> d180 = 3,5 mm / 2 su (0.1749999999999998)
+
+Schizzo: Schizzo29 (Piano: <class 'win32com.client.CDispatch'>)
+Stato Vincoli: COMPLETAMENTE VINCOLATO (kFullyConstrainedConstraintStatus)
+Vincoli Geometrici: 
+Quote Dimensionali:
+
+Schizzo: Schizzo30 (Piano: <class 'win32com.client.CDispatch'>)
+Stato Vincoli: COMPLETAMENTE VINCOLATO (kFullyConstrainedConstraintStatus)
+Vincoli Geometrici: Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83901440, Tipo_83900160, Tipo_83900160, Tipo_83902720, Tipo_83900160, Tipo_83900160, Tipo_83900160
+Quote Dimensionali:
+  - Tipo_83905792 -> d184 = 22 mm (2.2)
+
+=====================================
+FILE: Esempio-002.ipt
+
+Schizzo: Schizzo16 (Piano: Piano XY)
+Stato Vincoli: COMPLETAMENTE VINCOLATO (kFullyConstrainedConstraintStatus)
+Vincoli Geometrici: Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83903232, Tipo_83902976, Tipo_83902976, Tipo_83902208, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160
+Quote Dimensionali:
+  - Tipo_83905792 -> d68 = 200 mm (20.0)
+  - Tipo_83905792 -> d69 = 445 mm (44.5)
+
+Schizzo: Schizzo17 (Piano: <class 'win32com.client.CDispatch'>)
+Stato Vincoli: SCONOSCIUTO (kUnknownConstraintStatus)
+Vincoli Geometrici: Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83903232, Tipo_83902976, Tipo_83902976, Tipo_83902208, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160
+Quote Dimensionali:
+  - Tipo_83905536 -> d72 = 73 mm (7.300000000000001)
+
+Schizzo: Schizzo18 (Piano: <class 'win32com.client.CDispatch'>)
+Stato Vincoli: SOVRAVINCOLATO (kOverConstrainedConstraintStatus)
+Vincoli Geometrici: Tipo_83904256, Tipo_83904256, Tipo_83904256, Tipo_83904256, Tipo_83904256, Tipo_83904256, Tipo_83902464, Tipo_83902464, Tipo_83902464, Tipo_83902464, Tipo_83900160, Tipo_83900160, Tipo_83902208, Tipo_83900160, Tipo_83900160, Tipo_83904000, Tipo_83902464, Tipo_83904256, Tipo_83904256
+Quote Dimensionali:
+  - Tipo_83905792 -> d75 = 32 mm (3.2)
+  - Tipo_83905792 -> d76 = 50 mm (5.0)
+  - Tipo_83905792 -> d77 = d76 (5.0)
+  - Tipo_83905536 -> d88 = 125 mm / 2 su (6.25)
+  - Tipo_83905536 -> d89 = d75 / 2 su (1.6)
+  - Tipo_83905536 -> d91 = 20 mm (2.0)
+  - Tipo_83905792 -> d95 = 155 mm (15.5)
+  - Tipo_83905792 -> d96 = d76 (5.0)
+
+Schizzo: Schizzo19 (Piano: <class 'NoneType'>)
+Stato Vincoli: SCONOSCIUTO (kUnknownConstraintStatus)
+Vincoli Geometrici: Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83903232, Tipo_83902976, Tipo_83902976, Tipo_83902208
+Quote Dimensionali:
+  - Tipo_83905536 -> d97 = 445 mm (44.5)
+
+Schizzo: Schizzo20 (Piano: <class 'win32com.client.CDispatch'>)
+Stato Vincoli: COMPLETAMENTE VINCOLATO (kFullyConstrainedConstraintStatus)
+Vincoli Geometrici: Tipo_83904256, Tipo_83904256, Tipo_83902464, Tipo_83902464
+Quote Dimensionali:
+  - Tipo_83905792 -> d101 = 48 mm (4.800000000000001)
+  - Tipo_83905792 -> d102 = 24 mm (2.4000000000000004)
+  - Tipo_83905792 -> d103 = d101 / 2 su (2.4000000000000004)
+  - Tipo_83905536 -> d104 = 140 mm (14.0)
+
+Schizzo: Schizzo21 (Piano: <class 'win32com.client.CDispatch'>)
+Stato Vincoli: SCONOSCIUTO (kUnknownConstraintStatus)
+Vincoli Geometrici: Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83903232, Tipo_83902976, Tipo_83902976, Tipo_83902208, Tipo_83900416
+Quote Dimensionali:
+  - Tipo_83905536 -> d112 = 2 mm (0.2)
+
+Schizzo: Schizzo22 (Piano: <class 'win32com.client.CDispatch'>)
+Stato Vincoli: COMPLETAMENTE VINCOLATO (kFullyConstrainedConstraintStatus)
+Vincoli Geometrici: Tipo_83904256
+Quote Dimensionali:
+  - Tipo_83905792 -> d116 = 25 mm (2.5)
+  - Tipo_83905536 -> d117 = 12 mm (1.2000000000000002)
+  - Tipo_83905536 -> d118 = 22 mm (2.2)
+
+Schizzo: Schizzo23 (Piano: <class 'win32com.client.CDispatch'>)
+Stato Vincoli: COMPLETAMENTE VINCOLATO (kFullyConstrainedConstraintStatus)
+Vincoli Geometrici: 
+Quote Dimensionali:
+  - Tipo_83905536 -> d126 = 7,5 mm (0.75)
+  - Tipo_83905536 -> d127 = 110 mm (11.0)
+
+Schizzo: Schizzo24 (Piano: <class 'NoneType'>)
+Stato Vincoli: COMPLETAMENTE VINCOLATO (kFullyConstrainedConstraintStatus)
+Vincoli Geometrici: 
+Quote Dimensionali:
+
+Schizzo: Schizzo25 (Piano: <class 'win32com.client.CDispatch'>)
+Stato Vincoli: COMPLETAMENTE VINCOLATO (kFullyConstrainedConstraintStatus)
+Vincoli Geometrici: Tipo_83902464, Tipo_83902464
+Quote Dimensionali:
+  - Tipo_83905536 -> d138 = 10 mm (1.0)
+  - Tipo_83905536 -> d147 = 10 mm (1.0)
+  - Tipo_83905536 -> d160 = d147 (1.0)
+  - Tipo_83905536 -> d161 = 42 mm (4.2)
+
+Schizzo: Schizzo26 (Piano: <class 'win32com.client.CDispatch'>)
+Stato Vincoli: COMPLETAMENTE VINCOLATO (kFullyConstrainedConstraintStatus)
+Vincoli Geometrici: Tipo_83902464, Tipo_83904256, Tipo_83904256, Tipo_83902464
+Quote Dimensionali:
+  - Tipo_83905792 -> d148 = 64 mm (6.4)
+  - Tipo_83905792 -> d149 = 154 mm (15.4)
+  - Tipo_83905536 -> d151 = 97 mm (9.700000000000001)
+  - Tipo_83905536 -> d159 = 27,6 mm (2.7600000000000002)
+
+=====================================
+FILE: Esempio-003.ipt
+
+Schizzo: Schizzo1 (Piano: Piano XY)
+Stato Vincoli: COMPLETAMENTE VINCOLATO (kFullyConstrainedConstraintStatus)
+Vincoli Geometrici: Tipo_83900160, Tipo_83900160, Tipo_83904000, Tipo_83900160, Tipo_83903232, Tipo_83900160, Tipo_83900160, Tipo_83903232, Tipo_83900160, Tipo_83900160, Tipo_83903232, Tipo_83900160, Tipo_83900160, Tipo_83903232, Tipo_83900160, Tipo_83900160, Tipo_83903232, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83900160, Tipo_83903232, Tipo_83900160, Tipo_83900160, Tipo_83904000, Tipo_83900160, Tipo_83900160, Tipo_83903232, Tipo_83900160
+Quote Dimensionali:
+  - Tipo_83905536 -> d0 = 30 mm (3.0)
+  - Tipo_83905792 -> d1 = 5 mm (0.5)
+  - Tipo_83905536 -> d2 = 22 mm (2.2)
+  - Tipo_83905792 -> d3 = 6 mm (0.6000000000000001)
+  - Tipo_83905792 -> d4 = 13,5 mm + 1,5 mm - 0,5 mm + 3,5 mm - 1 mm (1.7)
+  - Tipo_83905536 -> d5 = 10 mm (1.0)
+  - Tipo_83905792 -> d6 = 32 mm - 5 mm - 2 mm (2.5)
+  - Tipo_83905536 -> d7 = 39,5 mm (3.95)
+
+Schizzo: Schizzo2 (Piano: <class 'win32com.client.CDispatch'>)
+Stato Vincoli: COMPLETAMENTE VINCOLATO (kFullyConstrainedConstraintStatus)
+Vincoli Geometrici: 
+Quote Dimensionali:
+
+Schizzo: Schizzo3 (Piano: <class 'win32com.client.CDispatch'>)
+Stato Vincoli: COMPLETAMENTE VINCOLATO (kFullyConstrainedConstraintStatus)
+Vincoli Geometrici: 
+Quote Dimensionali:

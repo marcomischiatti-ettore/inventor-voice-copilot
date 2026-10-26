@@ -1,0 +1,299 @@
+[
+    {
+        "id": "extrude_distance",
+        "modulo": "ExtrudeFeatures",
+        "metodo_inventor": "ExtrudeFeatures.AddByDistanceExtent",
+        "stato": "COMPLETATO",
+        "descrizione": "Crea un'estrusione lineare con estensione specificata per distanza (profondità/altezza) e direzione.",
+        "com_verificato": true,
+        "test_suite_superata": true
+    },
+    {
+        "id": "extrude_through_all",
+        "modulo": "ExtrudeFeatures",
+        "metodo_inventor": "ExtrudeFeatures.AddByThroughAllExtent",
+        "stato": "COMPLETATO",
+        "descrizione": "Crea un'estrusione passante totale attraverso tutti i corpi solidi.",
+        "com_verificato": true,
+        "test_suite_superata": true
+    },
+    {
+        "id": "extrude_to_extent",
+        "modulo": "ExtrudeFeatures",
+        "metodo_inventor": "ExtrudeFeatures.AddByToExtent",
+        "stato": "COMPLETATO",
+        "descrizione": "Crea un'estrusione fino a una faccia o superficie di terminazione definita.",
+        "com_verificato": true,
+        "test_suite_superata": true
+    },
+    {
+        "id": "extrude_definition",
+        "modulo": "ExtrudeFeatures",
+        "metodo_inventor": "ExtrudeFeatures.CreateExtrudeDefinition",
+        "stato": "COMPLETATO",
+        "descrizione": "Crea e configura una definizione avanzata di estrusione (angoli di sformo, estensioni asimmetriche, operazioni booleane).",
+        "com_verificato": true,
+        "test_suite_superata": true
+    },
+    {
+        "id": "hole_drilled_distance",
+        "modulo": "HoleFeatures",
+        "metodo_inventor": "HoleFeatures.AddDrilledByDistanceExtent",
+        "stato": "COMPLETATO",
+        "descrizione": "Crea un foro cieco semplice forato con diametro e profondità specificati.",
+        "com_verificato": true,
+        "test_suite_superata": true
+    },
+    {
+        "id": "hole_drilled_through_all",
+        "modulo": "HoleFeatures",
+        "metodo_inventor": "HoleFeatures.AddDrilledByThroughAllExtent",
+        "stato": "COMPLETATO",
+        "descrizione": "Crea un foro passante semplice con diametro specificato.",
+        "com_verificato": true,
+        "test_suite_superata": true
+    },
+    {
+        "id": "hole_cbore_distance",
+        "modulo": "HoleFeatures",
+        "metodo_inventor": "HoleFeatures.AddCBoreByDistanceExtent",
+        "stato": "COMPLETATO",
+        "descrizione": "Crea un foro con lamatura (controforo per testa vite cilindrica) a profondità definita.",
+        "com_verificato": true,
+        "test_suite_superata": true
+    },
+    {
+        "id": "hole_csink_distance",
+        "modulo": "HoleFeatures",
+        "metodo_inventor": "HoleFeatures.AddCSinkByDistanceExtent",
+        "stato": "COMPLETATO",
+        "descrizione": "Crea un foro con svasatura conica per teste svasate con diametro e angolo definiti.",
+        "com_verificato": true,
+        "test_suite_superata": true
+    },
+    {
+        "id": "hole_definition",
+        "modulo": "HoleFeatures",
+        "metodo_inventor": "HoleFeatures.CreateHoleDefinition",
+        "stato": "COMPLETATO",
+        "descrizione": "Crea una definizione avanzata di foratura (filettata, con gioco, maschiata conica, ecc.).",
+        "com_verificato": true,
+        "test_suite_superata": true
+    },
+    {
+        "id": "thread_standard",
+        "modulo": "ThreadFeatures",
+        "metodo_inventor": "ThreadFeatures.Add",
+        "stato": "COMPLETATO",
+        "descrizione": "Applica una filettatura metrica o standard ISO/ANSI a una faccia cilindrica.",
+        "com_verificato": true,
+        "test_suite_superata": true
+    },
+    {
+        "id": "thread_create_info",
+        "modulo": "ThreadFeatures",
+        "metodo_inventor": "ThreadFeatures.CreateThreadInfo",
+        "stato": "COMPLETATO",
+        "descrizione": "Configura le informazioni dettagliate della filettatura (passo, classe, direzione destra/sinistra).",
+        "com_verificato": true,
+        "test_suite_superata": true
+    },
+    {
+        "id": "chamfer_distance",
+        "modulo": "ChamferFeatures",
+        "metodo_inventor": "ChamferFeatures.AddUsingDistance",
+        "stato": "COMPLETATO",
+        "descrizione": "Crea uno smusso a 45 gradi su uno o più spigoli specificando la distanza.",
+        "com_verificato": true,
+        "test_suite_superata": true
+    },
+    {
+        "id": "chamfer_distance_angle",
+        "modulo": "ChamferFeatures",
+        "metodo_inventor": "ChamferFeatures.AddUsingDistanceAndAngle",
+        "stato": "COMPLETATO",
+        "descrizione": "Crea uno smusso definito da distanza e angolo su spigoli selezionati.",
+        "com_verificato": true,
+        "test_suite_superata": true
+    },
+    {
+        "id": "chamfer_two_distances",
+        "modulo": "ChamferFeatures",
+        "metodo_inventor": "ChamferFeatures.AddUsingTwoDistances",
+        "stato": "COMPLETATO",
+        "descrizione": "Crea uno smusso a due distanze asimmetriche su spigoli selezionati.",
+        "com_verificato": true,
+        "test_suite_superata": true
+    },
+    {
+        "id": "fillet_edge_set",
+        "modulo": "FilletFeatures",
+        "metodo_inventor": "FilletFeatures.AddEdgeSet",
+        "stato": "COMPLETATO",
+        "descrizione": "Crea raccordi a raggio costante su uno o più spigoli selezionati.",
+        "com_verificato": true,
+        "test_suite_superata": true
+    },
+    {
+        "id": "fillet_definition",
+        "modulo": "FilletFeatures",
+        "metodo_inventor": "FilletFeatures.CreateFilletDefinition",
+        "stato": "COMPLETATO",
+        "descrizione": "Crea una definizione avanzata di raccordo (raggio variabile, raccordo a corda, facce complete).",
+        "com_verificato": true,
+        "test_suite_superata": true
+    },
+    {
+        "id": "rectangular_pattern",
+        "modulo": "RectangularPatternFeatures",
+        "metodo_inventor": "RectangularPatternFeatures.Add",
+        "stato": "COMPLETATO",
+        "descrizione": "Crea una serie rettangolare (pattern lineare su due direzioni con conteggio e spaziatura).",
+        "com_verificato": true,
+        "test_suite_superata": true
+    },
+    {
+        "id": "rectangular_pattern_definition",
+        "modulo": "RectangularPatternFeatures",
+        "metodo_inventor": "RectangularPatternFeatures.CreateDefinition",
+        "stato": "COMPLETATO",
+        "descrizione": "Crea e configura la definizione parametrica per serie rettangolari complesse.",
+        "com_verificato": true,
+        "test_suite_superata": true
+    },
+    {
+        "id": "circular_pattern",
+        "modulo": "CircularPatternFeatures",
+        "metodo_inventor": "CircularPatternFeatures.Add",
+        "stato": "COMPLETATO",
+        "descrizione": "Crea una serie circolare/polare attorno a un asse di rotazione con conteggio e angolo totale/passo.",
+        "com_verificato": true,
+        "test_suite_superata": true
+    },
+    {
+        "id": "circular_pattern_definition",
+        "modulo": "CircularPatternFeatures",
+        "metodo_inventor": "CircularPatternFeatures.CreateDefinition",
+        "stato": "COMPLETATO",
+        "descrizione": "Crea e configura la definizione parametrica per serie circolari.",
+        "com_verificato": true,
+        "test_suite_superata": true
+    },
+    {
+        "id": "mirror_features",
+        "modulo": "MirrorFeatures",
+        "metodo_inventor": "MirrorFeatures.Add",
+        "stato": "COMPLETATO",
+        "descrizione": "Specchia una o più feature rispetto a un piano di lavoro o faccia piana di simmetria.",
+        "com_verificato": true,
+        "test_suite_superata": true
+    },
+    {
+        "id": "mirror_definition",
+        "modulo": "MirrorFeatures",
+        "metodo_inventor": "MirrorFeatures.CreateDefinition",
+        "stato": "COMPLETATO",
+        "descrizione": "Crea la definizione completa di specchiatura per feature o per l'intero solido.",
+        "com_verificato": true,
+        "test_suite_superata": true
+    },
+    {
+        "id": "shell_standard",
+        "modulo": "ShellFeatures",
+        "metodo_inventor": "ShellFeatures.Add",
+        "stato": "COMPLETATO",
+        "descrizione": "Svuota un corpo solido lasciando uno spessore di parete costante e rimuovendo facce aperte.",
+        "com_verificato": true,
+        "test_suite_superata": true
+    },
+    {
+        "id": "shell_definition",
+        "modulo": "ShellFeatures",
+        "metodo_inventor": "ShellFeatures.CreateShellDefinition",
+        "stato": "COMPLETATO",
+        "descrizione": "Crea una definizione avanzata di svuotamento con spessori differenziati per faccia.",
+        "com_verificato": true,
+        "test_suite_superata": true
+    },
+    {
+        "id": "rib_standard",
+        "modulo": "RibFeatures",
+        "metodo_inventor": "RibFeatures.Add",
+        "stato": "COMPLETATO",
+        "descrizione": "Crea una nervatura di rinforzo o anima strutturale a partire da un profilo di schizzo aperto.",
+        "com_verificato": true,
+        "test_suite_superata": true
+    },
+    {
+        "id": "rib_definition",
+        "modulo": "RibFeatures",
+        "metodo_inventor": "RibFeatures.CreateRibDefinition",
+        "stato": "COMPLETATO",
+        "descrizione": "Crea e configura la definizione di nervatura con spessori normali o paralleli al piano.",
+        "com_verificato": true,
+        "test_suite_superata": true
+    },
+    {
+        "id": "move_face_standard",
+        "modulo": "MoveFaceFeatures",
+        "metodo_inventor": "MoveFaceFeatures.Add",
+        "stato": "COMPLETATO",
+        "descrizione": "Trasla, ruota o sposta una o più facce di un corpo solido lungo una direzione o vettore.",
+        "com_verificato": true,
+        "test_suite_superata": true
+    },
+    {
+        "id": "move_face_definition",
+        "modulo": "MoveFaceFeatures",
+        "metodo_inventor": "MoveFaceFeatures.CreateMoveFaceDefinition",
+        "stato": "COMPLETATO",
+        "descrizione": "Crea una definizione avanzata di spostamento facce per modifiche dirette al solido.",
+        "com_verificato": true,
+        "test_suite_superata": true
+    },
+    {
+        "id": "loft_standard",
+        "modulo": "LoftFeatures",
+        "metodo_inventor": "LoftFeatures.Add",
+        "stato": "COMPLETATO",
+        "descrizione": "Crea una feature di loft (raccordo di transizione) attraverso due o più sezioni/profili.",
+        "com_verificato": true,
+        "test_suite_superata": true
+    },
+    {
+        "id": "loft_definition",
+        "modulo": "LoftFeatures",
+        "metodo_inventor": "LoftFeatures.CreateLoftDefinition",
+        "stato": "COMPLETATO",
+        "descrizione": "Crea la definizione avanzata di loft specificando curve guida, linee d'asse e condizioni di tangenza.",
+        "com_verificato": true,
+        "test_suite_superata": true
+    },
+    {
+        "id": "sweep_path",
+        "modulo": "SweepFeatures",
+        "metodo_inventor": "SweepFeatures.AddUsingPath",
+        "stato": "COMPLETATO",
+        "descrizione": "Crea uno sweep estrudendo un profilo chiuso o aperto lungo una traiettoria guida (percorso).",
+        "com_verificato": true,
+        "test_suite_superata": true
+    },
+    {
+        "id": "sweep_guide_rail",
+        "modulo": "SweepFeatures",
+        "metodo_inventor": "SweepFeatures.AddUsingGuideRail",
+        "stato": "COMPLETATO",
+        "descrizione": "Crea uno sweep con profilo lungo una traiettoria e una o più curve guida di orientamento/scala.",
+        "com_verificato": true,
+        "test_suite_superata": true
+    },
+    {
+        "id": "sweep_definition",
+        "modulo": "SweepFeatures",
+        "metodo_inventor": "SweepFeatures.CreateSweepDefinition",
+        "stato": "COMPLETATO",
+        "descrizione": "Crea la definizione completa di sweep per traiettorie 3D complesse.",
+        "com_verificato": true,
+        "test_suite_superata": true
+    }
+]

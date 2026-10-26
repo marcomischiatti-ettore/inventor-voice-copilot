@@ -1,0 +1,19 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables & API keys
+.env
+*.env
+api_key.txt
+
+# File temporanei di analisi e log interni
+feedback_gemini.txt
+report_antigravity.txt
+
+# Editor e sistema operativo
+.vscode/
+.idea/
+Thumbs.db
+Desktop.ini
