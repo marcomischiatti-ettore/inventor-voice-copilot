@@ -1,6 +1,11 @@
 """
 comandi/shell_standard.py
 Modulo vocale: Svuotamento Solido con Spessore Parete (ShellFeatures.Add).
+Supporta:
+- Selezione interattiva a video della faccia/facce da aprire (SelectSet)
+- Selezione semantica da voce (faccia superiore, inferiore, frontale, destra, sinistra)
+- Svuotamento a corpo chiuso senza rimuovere facce (solido cavo chiuso)
+- Spessore parametrico convertito in cm per Inventor
 """
 
 import math
@@ -11,12 +16,14 @@ try:
     from comandi.inventor_utils import (
         mm_to_cm, get_inventor_app, get_or_create_part_doc,
         crea_schizzo_rettangolare_centrato,
+        get_active_selection, find_face_by_direction,
         kPositiveExtentDirection, kJoinOperation
     )
 except ImportError:
     from inventor_utils import (
         mm_to_cm, get_inventor_app, get_or_create_part_doc,
         crea_schizzo_rettangolare_centrato,
+        get_active_selection, find_face_by_direction,
         kPositiveExtentDirection, kJoinOperation
     )
 
@@ -24,12 +31,22 @@ except ImportError:
 def analizza_frase_vocale(frase: str) -> Dict[str, Any]:
     f = frase.lower().strip()
     spessore_mm = 2.0
-    match_s = re.search(r'(?:spessore|parete|svuota)(?:\s*(?:di|a))?\s*(\d+(?:[.,]\d+)?)(?:\s*(?:mm|millimetri))?', f)
+    match_s = re.search(r'(?:spessore|parete|svuota|thk|s)(?:\s*(?:di|a|da))?\s*(\d+(?:[.,]\d+)?)(?:\s*(?:mm|millimetri))?', f)
     if match_s:
         spessore_mm = float(match_s.group(1).replace(',', '.'))
 
+    corpo_chiuso = any(k in f for k in ["corpo chiuso", "solido chiuso", "chiuso", "senza rimuovere", "senza aprire", "cavo"])
+
+    faccia_target = None
+    for orient in ["superiore", "inferiore", "frontale", "posteriore", "destra", "destro", "sinistra", "sinistro", "sopra", "sotto", "fondo", "alto", "basso"]:
+        if orient in f:
+            faccia_target = orient
+            break
+
     return {
         "spessore_mm": spessore_mm,
+        "corpo_chiuso": corpo_chiuso,
+        "faccia_target": faccia_target,
         "frase_originale": frase
     }
 
@@ -52,7 +69,8 @@ def esegui_comando(frase_vocale: str, test_mode: bool = False, part_doc=None) ->
         assert spessore_cm > 0
         assert abs(spessore_cm - params["spessore_mm"]/10.0) < 1e-9
         resoconto["successo"] = True
-        resoconto["dettagli"] = f"Simulazione superata: ShellFeatures.Add spessore={spessore_cm:.4f} cm"
+        desc = "corpo chiuso" if params["corpo_chiuso"] else f"faccia: {params.get('faccia_target') or 'default superiore'}"
+        resoconto["dettagli"] = f"Simulazione superata: ShellFeatures.Add spessore={spessore_cm:.4f} cm ({desc})"
         return resoconto
 
     inv_app = get_inventor_app()
@@ -70,19 +88,33 @@ def esegui_comando(frase_vocale: str, test_mode: bool = False, part_doc=None) ->
 
         body = cd.SurfaceBodies.Item(1)
         open_faces = inv_app.TransientObjects.CreateFaceCollection()
-        # Rimuove la faccia superiore aperta
-        for i in range(1, body.Faces.Count + 1):
-            fc = body.Faces.Item(i)
-            if hasattr(fc.Geometry, 'Normal') and abs(fc.Geometry.Normal.Z - 1.0) < 0.1:
-                open_faces.Add(fc)
-                break
-        if open_faces.Count == 0:
-            open_faces.Add(body.Faces.Item(1))
+        faccia_desc = "corpo chiuso (nessuna faccia rimossa)"
 
-        shell_feat = cd.Features.ShellFeatures.Add(open_faces, spessore_cm, 20481) # Inside direction
+        if not params["corpo_chiuso"]:
+            # Priorita 1: Faccia selezionata a video dall'utente con il mouse
+            sel = get_active_selection(part_doc)
+            if sel["faces"]:
+                for fc in sel["faces"]:
+                    open_faces.Add(fc)
+                faccia_desc = f"{len(sel['faces'])} faccia/e selezionata/e a video rimossa/e"
+            # Priorita 2: Faccia semantica specificata a voce (es. "faccia frontale", "superiore")
+            elif params.get("faccia_target"):
+                target_fc = find_face_by_direction(body, params["faccia_target"])
+                if target_fc:
+                    open_faces.Add(target_fc)
+                    faccia_desc = f"faccia {params['faccia_target']} rimossa"
+            # Priorita 3: Default faccia superiore (+Z)
+            else:
+                target_fc = find_face_by_direction(body, "top")
+                if target_fc:
+                    open_faces.Add(target_fc)
+                    faccia_desc = "faccia superiore (+Z) rimossa"
+
+        # Direzione 20481 = kInsideShellDirection (svuotamento verso l'interno)
+        shell_feat = cd.Features.ShellFeatures.Add(open_faces, spessore_cm, 20481)
         trans.End()
         resoconto["successo"] = True
-        resoconto["dettagli"] = f"Svuotamento creato con successo: {shell_feat.Name}, Spessore={params['spessore_mm']} mm"
+        resoconto["dettagli"] = f"Svuotamento creato con successo: {shell_feat.Name}, Spessore={params['spessore_mm']} mm ({faccia_desc})"
         return resoconto
     except Exception as e:
         trans.Abort()

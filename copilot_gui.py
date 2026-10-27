@@ -28,8 +28,8 @@ class InventorCopilotApp(ctk.CTk):
         super().__init__()
 
         self.title("Autodesk Inventor AI Copilot")
-        self.geometry("860x700")
-        self.minsize(720, 560)
+        self.geometry("900x720")
+        self.minsize(740, 580)
 
         # Configurazione layout
         self.grid_columnconfigure(0, weight=1)
@@ -84,9 +84,10 @@ class InventorCopilotApp(ctk.CTk):
         comandi_rapidi = [
             ("Demo 3D Completa", self.avvia_demo),
             ("Piastra 100x100x10", lambda: self.esegui_frase("fai una piastra 100x100x10")),
+            ("Foro da Bordi 20x30", lambda: self.esegui_frase("foro passante diametro 10 a 20 mm da sinistra e 30 mm dal fondo")),
             ("Foro Passante Ø16", lambda: self.esegui_frase("foro passante diametro 16 mm al centro")),
             ("Smusso 3 mm", lambda: self.esegui_frase("smusso di 3 mm su tutti gli spigoli")),
-            ("Svuotamento 2.5 mm", lambda: self.esegui_frase("svuota il solido con spessore 2.5 mm"))
+            ("Svuota Parete 2.5", lambda: self.esegui_frase("svuota il solido con spessore 2.5 mm"))
         ]
 
         for nome, cmd in comandi_rapidi:
@@ -118,8 +119,8 @@ class InventorCopilotApp(ctk.CTk):
 
         self.entry_command = ctk.CTkEntry(
             self.input_frame,
-            placeholder_text="Digita un comando o usa Win+H per parlare (es. 'fai una piastra 100x100x10')...",
-            font=ctk.CTkFont(size=14),
+            placeholder_text="Scrivi o usa Win+H (es. 'foro diametro 10 a 20 mm da sinistra e 30 mm da sotto', 'svuota faccia frontale')...",
+            font=ctk.CTkFont(size=13),
             height=45,
             corner_radius=8
         )
@@ -139,7 +140,7 @@ class InventorCopilotApp(ctk.CTk):
 
         # Log iniziale
         self.stampa_log("[SISTEMA] Autodesk Inventor Voice Copilot inizializzato.")
-        self.stampa_log("[INFO] 33/33 moduli CAD compilati e pronti all'uso.")
+        self.stampa_log("[INFO] Smart Placement Attivo: supporta quote da bordi/spigoli, SelectSet a video e direzioni semantiche.")
         self.stampa_log("[INFO] Inizializzazione COM thread-safe completata.")
 
         # Avvia controllo Inventor in background con CoInitialize

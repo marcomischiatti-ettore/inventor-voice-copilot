@@ -1,6 +1,11 @@
 """
 comandi/hole_csink_distance.py
 Modulo vocale: Foro Svasato a Distanza (HoleFeatures.AddCSinkByDistanceExtent).
+Supporta:
+- Posizionamento lineare da bordi/spigoli (CreateLinearPlacementDefinition)
+- Selezione interattiva a video (SelectSet)
+- Posizionamento concentrico su spigoli circolari
+- Coordinate X, Y e centro faccia
 """
 
 import math
@@ -11,26 +16,24 @@ try:
     from comandi.inventor_utils import (
         mm_to_cm, deg_to_rad, get_inventor_app, get_or_create_part_doc,
         crea_schizzo_rettangolare_centrato,
-        kPositiveExtentDirection, kPositiveExtentDirection, kJoinOperation
+        create_smart_hole_placement, analizza_posizionamento_foro, estrai_diametro_foro,
+        kPositiveExtentDirection, kNegativeExtentDirection, kJoinOperation
     )
 except ImportError:
     from inventor_utils import (
         mm_to_cm, deg_to_rad, get_inventor_app, get_or_create_part_doc,
         crea_schizzo_rettangolare_centrato,
-        kPositiveExtentDirection, kPositiveExtentDirection, kJoinOperation
+        create_smart_hole_placement, analizza_posizionamento_foro, estrai_diametro_foro,
+        kPositiveExtentDirection, kNegativeExtentDirection, kJoinOperation
     )
 
 
 def analizza_frase_vocale(frase: str) -> Dict[str, Any]:
     f = frase.lower().strip()
-    diametro_mm = 6.0
-    csink_diametro_mm = 12.0
+    diametro_mm = estrai_diametro_foro(frase, default_mm=6.0)
+    csink_diametro_mm = max(12.0, diametro_mm * 1.8)
     csink_angolo_deg = 90.0
     profondita_mm = 20.0
-
-    match_d = re.search(r'(?:diametro|d|foro)(?:\s*(?:di|a))?\s*(\d+(?:[.,]\d+)?)(?:\s*(?:mm|millimetri))?', f)
-    if match_d:
-        diametro_mm = float(match_d.group(1).replace(',', '.'))
 
     match_csd = re.search(r'(?:svasatura|csink|svaso)(?:\s*(?:di|a|diametro))?\s*(\d+(?:[.,]\d+)?)(?:\s*(?:mm|millimetri))?', f)
     if match_csd:
@@ -46,13 +49,17 @@ def analizza_frase_vocale(frase: str) -> Dict[str, Any]:
         if abs(val - csink_diametro_mm) > 1e-3 and abs(val - diametro_mm) > 1e-3:
             profondita_mm = val
 
-    return {
+    pos_info = analizza_posizionamento_foro(frase)
+
+    res = {
         "diametro_mm": diametro_mm,
         "csink_diametro_mm": csink_diametro_mm,
         "csink_angolo_deg": csink_angolo_deg,
         "profondita_mm": profondita_mm,
         "frase_originale": frase
     }
+    res.update(pos_info)
+    return res
 
 
 def esegui_comando(frase_vocale: str, test_mode: bool = False, part_doc=None) -> Dict[str, Any]:
@@ -80,7 +87,12 @@ def esegui_comando(frase_vocale: str, test_mode: bool = False, part_doc=None) ->
         assert abs(d_cm - params["diametro_mm"]/10.0) < 1e-9
         assert abs(csa_rad - math.radians(params["csink_angolo_deg"])) < 1e-9
         resoconto["successo"] = True
-        resoconto["dettagli"] = f"Simulazione superata: AddCSinkByDistanceExtent D={d_cm}cm, CSinkAngle={csa_rad}rad"
+        pos_desc = "al centro"
+        if params.get("bordo1") and params.get("distanza1_mm") is not None:
+            pos_desc = f"da {params['bordo1']}={params['distanza1_mm']}mm, {params['bordo2']}={params['distanza2_mm']}mm"
+        elif not params.get("al_centro"):
+            pos_desc = f"X={params['pos_x_mm']}mm, Y={params['pos_y_mm']}mm"
+        resoconto["dettagli"] = f"Simulazione superata: AddCSinkByDistanceExtent D={d_cm}cm, CSinkAngle={csa_rad}rad, Pos: {pos_desc}"
         return resoconto
 
     inv_app = get_inventor_app()
@@ -96,33 +108,14 @@ def esegui_comando(frase_vocale: str, test_mode: bool = False, part_doc=None) ->
             _, bp = crea_schizzo_rettangolare_centrato(part_doc, 80.0, 60.0, 3)
             cd.Features.ExtrudeFeatures.AddByDistanceExtent(bp, mm_to_cm(50.0), kPositiveExtentDirection, kJoinOperation)
 
-        body = cd.SurfaceBodies.Item(1)
-        target_face = None
-        for i in range(1, body.Faces.Count + 1):
-            f = body.Faces.Item(i)
-            if hasattr(f.Geometry, 'Normal') and abs(f.Geometry.Normal.Z - 1.0) < 0.1:
-                target_face = f
-                break
-        if target_face is None:
-            target_face = body.Faces.Item(1)
-
-        sk = cd.Sketches.Add(target_face)
-        sp = sk.SketchPoints.Add(inv_app.TransientGeometry.CreatePoint2d(0, 0))
-        try:
-            sk.GeometricConstraints.AddCoincident(sk.OriginPoint, sp)
-        except Exception:
-            pass
-
-        coll = inv_app.TransientObjects.CreateObjectCollection()
-        coll.Add(sp)
-        place_def = cd.Features.HoleFeatures.CreateSketchPlacementDefinition(coll)
+        place_def, pos_msg = create_smart_hole_placement(inv_app, part_doc, params)
         hole_feat = cd.Features.HoleFeatures.AddCSinkByDistanceExtent(
             place_def, d_cm, csd_cm, csa_rad, h_cm, kPositiveExtentDirection, False, deg_to_rad(118.0)
         )
 
         trans.End()
         resoconto["successo"] = True
-        resoconto["dettagli"] = f"Foro svasato creato con successo: {hole_feat.Name}, D={params['diametro_mm']}mm, Angolo={params['csink_angolo_deg']}°"
+        resoconto["dettagli"] = f"Foro svasato creato con successo: {hole_feat.Name}, D={params['diametro_mm']}mm, Angolo={params['csink_angolo_deg']}°. {pos_msg}"
         return resoconto
     except Exception as e:
         trans.Abort()
