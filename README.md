@@ -114,6 +114,15 @@ Nessuna chiave viene salvata nel codice sorgente o tracciata su Git (protetta da
 
 ---
 
+## 🌿 Rami di Sviluppo & Contributi
+
+Il repository segue un flusso di lavoro collaborativo su branch per differenziare le aree di sviluppo:
+- **main**: Versione base e condivisa del progetto.
+- **simone**: Branch con le implementazioni per lo **Smart Placement parametrico da bordi/spigoli**, selezione interattiva a video (SelectSet), quote visibili nello schizzo, normalizzazione linguistica d'officina e correzione del solido 3D per i fori.  
+  👉 Consulta la documentazione dettagliata in [DOCS_BRANCH_SIMONE.md](DOCS_BRANCH_SIMONE.md).
+
+---
+
 ## 📄 Licenza
 
 Distribuito sotto licenza **MIT**. Consulta il file `LICENSE` per ulteriori dettagli.
