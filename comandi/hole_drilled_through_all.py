@@ -32,8 +32,8 @@ def analizza_frase_vocale(frase: str) -> Dict[str, Any]:
     f = frase.lower().strip()
     diametro_mm = estrai_diametro_foro(frase, default_mm=10.0)
 
-    # Invertita direzione verso l'interno del solido (kNegativeExtentDirection)
-    direzione = kNegativeExtentDirection
+    # Direzione foratura verso il solido (in Inventor kPositiveExtentDirection è la normale entrante)
+    direzione = kPositiveExtentDirection
     if "entrambi" in f or "simmetric" in f:
         direzione = kSymmetricExtentDirection
 
@@ -91,6 +91,14 @@ def esegui_comando(frase_vocale: str, test_mode: bool = False, part_doc=None) ->
         hole_feat = cd.Features.HoleFeatures.AddDrilledByThroughAllExtent(place_def, diametro_cm, params["direzione"])
 
         trans.End()
+        try:
+            part_doc.Update2(True)
+        except Exception:
+            try:
+                part_doc.Update()
+            except Exception:
+                pass
+
         resoconto["successo"] = True
         resoconto["dettagli"] = f"Foro passante creato con successo: {hole_feat.Name}, D={params['diametro_mm']} mm. {pos_msg}"
         return resoconto

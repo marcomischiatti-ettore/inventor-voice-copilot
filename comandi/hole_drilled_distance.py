@@ -117,12 +117,19 @@ def esegui_comando(frase_vocale: str, test_mode: bool = False, part_doc=None) ->
             place_def,
             diametro_cm,
             profondita_cm,
-            kNegativeExtentDirection, # Verso l'interno del solido
+            kPositiveExtentDirection,
             params["fondo_piatto"],
             angolo_punta_rad
         )
 
         trans.End()
+        try:
+            part_doc.Update2(True)
+        except Exception:
+            try:
+                part_doc.Update()
+            except Exception:
+                pass
         resoconto["successo"] = True
         resoconto["dettagli"] = f"Foro cieco creato con successo: {hole_feat.Name}, D={params['diametro_mm']} mm, Prof={params['profondita_mm']} mm. {pos_msg}"
         return resoconto
