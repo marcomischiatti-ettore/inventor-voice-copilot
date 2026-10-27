@@ -240,15 +240,26 @@ def find_face_by_direction(body, direction_name: str = "top"):
     return best_face
 
 
-def get_face_edges_by_direction(face):
-    """Categorizza gli spigoli di una faccia piana rispetto ai riferimenti: sinistro, destro, fondo, sopra."""
+def get_face_edges_and_bounds(face):
+    """
+    Categorizza gli spigoli esterni e calcola i limiti cartesiani (min_u, max_u, min_v, max_v)
+    della faccia piana, utilizzando il loop di confine primario per ignorare fori preesistenti.
+    """
     edges_info = []
     normal_z = 1.0
     if hasattr(face.Geometry, "Normal"):
         normal_z = abs(face.Geometry.Normal.Z)
 
-    for i in range(1, face.Edges.Count + 1):
-        e = face.Edges.Item(i)
+    # In Inventor, EdgeLoops.Item(1) è sempre il loop perimetrale esterno del solido
+    edge_source = face.Edges
+    try:
+        if hasattr(face, "EdgeLoops") and face.EdgeLoops.Count >= 1:
+            edge_source = face.EdgeLoops.Item(1).Edges
+    except Exception:
+        pass
+
+    for i in range(1, edge_source.Count + 1):
+        e = edge_source.Item(i)
         try:
             p1 = e.StartVertex.Point
             p2 = e.EndVertex.Point
@@ -278,17 +289,23 @@ def get_face_edges_by_direction(face):
             pass
 
     if not edges_info:
-        return {}
+        # Fallback conservativo su piastra standard 100x100
+        return {}, -5.0, 5.0, -5.0, 5.0
 
     edges_by_u = sorted(edges_info, key=lambda x: x["u"])
     edges_by_v = sorted(edges_info, key=lambda x: x["v"])
+
+    min_u = edges_by_u[0]["u"]
+    max_u = edges_by_u[-1]["u"]
+    min_v = edges_by_v[0]["v"]
+    max_v = edges_by_v[-1]["v"]
 
     edge_left = edges_by_u[0]["edge"]
     edge_right = edges_by_u[-1]["edge"]
     edge_bottom = edges_by_v[0]["edge"]
     edge_top = edges_by_v[-1]["edge"]
 
-    return {
+    edges_map = {
         "sinistro": edge_left,
         "sinistra": edge_left,
         "left": edge_left,
@@ -308,6 +325,8 @@ def get_face_edges_by_direction(face):
         "sotto": edge_bottom
     }
 
+    return edges_map, min_u, max_u, min_v, max_v
+
 
 def estrai_diametro_foro(frase: str, default_mm: float = 10.0) -> float:
     """Estrae in modo affidabile il diametro o la misura metrica (es. M10, diametro 12, foro da 14)."""
@@ -315,12 +334,16 @@ def estrai_diametro_foro(frase: str, default_mm: float = 10.0) -> float:
     m_m = re.search(r'\bm(\d+(?:[.,]\d+)?)\b', f)
     if m_m:
         return float(m_m.group(1).replace(',', '.'))
+    
+    # Esplicito: diametro 12, d 12, foro da 12, foro 12
     m = re.search(r'(?:diametro|d)\s*(?:di|da|a)?\s*(\d+(?:[.,]\d+)?)(?:\s*(?:mm|millimetri))?', f)
     if m:
         return float(m.group(1).replace(',', '.'))
-    m2 = re.search(r'\bforo\s+(?:da|di)?\s*(\d+(?:[.,]\d+)?)(?:\s*(?:mm|millimetri))?', f)
+    
+    m2 = re.search(r'\bforo\s+(?:passante\s+|cieco\s+)?(?:da|di)?\s*(\d+(?:[.,]\d+)?)(?:\s*(?:mm|millimetri))?', f)
     if m2:
         return float(m2.group(1).replace(',', '.'))
+        
     return float(default_mm)
 
 
@@ -392,10 +415,12 @@ def analizza_posizionamento_foro(frase: str) -> dict:
 
 def create_smart_hole_placement(inv_app, part_doc, params):
     """
-    Costruisce e restituisce il corretto HolePlacementDefinition di Inventor.
-    Se specificati riferimenti a bordi/spigoli con quote:
-    Proietta gli spigoli di riferimento nello schizzo della faccia,
-    calcola la posizione esatta all'interno della piastra e genera le quote grafiche visibili!
+    Costruisce e restituisce il corretto HolePlacementDefinition di Inventor:
+    1. Se specificati riferimenti a bordi/spigoli con quote:
+       Calcola le coordinate cartesiane esatte a partire dai limiti della faccia
+       e posiziona il foro esattamente a quell'offset dai bordi!
+    2. ConcentricPlacementDefinition: se e richiesta concentricita;
+    3. SketchPlacementDefinition: per coordinate assolute X, Y o 'al centro'.
     """
     cd = part_doc.ComponentDefinition
     body = cd.SurfaceBodies.Item(1)
@@ -450,84 +475,63 @@ def create_smart_hole_placement(inv_app, part_doc, params):
 
     # --- STRATEGIA 2: POSIZIONAMENTO PARAMETRICO DA BORDI ---
     if bordo1 and dist1_mm is not None and bordo2 and dist2_mm is not None:
-        edges_map = get_face_edges_by_direction(target_face)
+        edges_map, min_u, max_u, min_v, max_v = get_face_edges_and_bounds(target_face)
+        dist1_cm = mm_to_cm(dist1_mm)
+        dist2_cm = mm_to_cm(dist2_mm)
+
+        target_x = 0.0
+        target_y = 0.0
+
+        # Asse determinato da bordo 1
+        if bordo1 in ["sinistra", "sinistro", "left"]:
+            target_x = min_u + dist1_cm
+        elif bordo1 in ["destra", "destro", "right"]:
+            target_x = max_u - dist1_cm
+        elif bordo1 in ["inferiore", "basso", "fondo", "frontale", "bottom", "sotto"]:
+            target_y = min_v + dist1_cm
+        elif bordo1 in ["superiore", "alto", "sopra", "posteriore", "top"]:
+            target_y = max_v - dist1_cm
+
+        # Asse determinato da bordo 2
+        if bordo2 in ["sinistra", "sinistro", "left"]:
+            target_x = min_u + dist2_cm
+        elif bordo2 in ["destra", "destro", "right"]:
+            target_x = max_u - dist2_cm
+        elif bordo2 in ["inferiore", "basso", "fondo", "frontale", "bottom", "sotto"]:
+            target_y = min_v + dist2_cm
+        elif bordo2 in ["superiore", "alto", "sopra", "posteriore", "top"]:
+            target_y = max_v - dist2_cm
+
+        # Crea punto di schizzo alle coordinate calcolate
+        sp = sk.SketchPoints.Add(tg.CreatePoint2d(target_x, target_y))
+
+        # Proietta gli spigoli di riferimento nello schizzo per le quote grafiche
         ref_edge1 = edges_map.get(bordo1)
         ref_edge2 = edges_map.get(bordo2)
-
-        if ref_edge1 and ref_edge2:
+        if ref_edge1:
             try:
                 proj1 = sk.AddByProjectingEntity(ref_edge1)
-                proj2 = sk.AddByProjectingEntity(ref_edge2)
-                
-                p1_start = proj1.StartSketchPoint.Geometry
-                p1_end = proj1.EndSketchPoint.Geometry
-                mid1_x = (p1_start.X + p1_end.X) / 2.0
-                mid1_y = (p1_start.Y + p1_end.Y) / 2.0
-                span1_x = abs(p1_start.X - p1_end.X)
-                span1_y = abs(p1_start.Y - p1_end.Y)
-
-                p2_start = proj2.StartSketchPoint.Geometry
-                p2_end = proj2.EndSketchPoint.Geometry
-                mid2_x = (p2_start.X + p2_end.X) / 2.0
-                mid2_y = (p2_start.Y + p2_end.Y) / 2.0
-                span2_x = abs(p2_start.X - p2_end.X)
-                span2_y = abs(p2_start.Y - p2_end.Y)
-
-                dist1_cm = mm_to_cm(dist1_mm)
-                dist2_cm = mm_to_cm(dist2_mm)
-
-                target_x = 0.0
-                target_y = 0.0
-
-                # Asse X o Y determinato da bordo 1
-                if span1_y >= span1_x: # Bordo 1 è verticale (asse X)
-                    if bordo1 in ["sinistra", "sinistro", "left"]:
-                        target_x = mid1_x + dist1_cm
-                    else:
-                        target_x = mid1_x - dist1_cm
-                else: # Bordo 1 è orizzontale (asse Y)
-                    if bordo1 in ["inferiore", "basso", "fondo", "frontale", "bottom", "sotto"]:
-                        target_y = mid1_y + dist1_cm
-                    else:
-                        target_y = mid1_y - dist1_cm
-
-                # Asse X o Y determinato da bordo 2
-                if span2_y >= span2_x: # Bordo 2 è verticale (asse X)
-                    if bordo2 in ["sinistra", "sinistro", "left"]:
-                        target_x = mid2_x + dist2_cm
-                    else:
-                        target_x = mid2_x - dist2_cm
-                else: # Bordo 2 è orizzontale (asse Y)
-                    if bordo2 in ["inferiore", "basso", "fondo", "frontale", "bottom", "sotto"]:
-                        target_y = mid2_y + dist2_cm
-                    else:
-                        target_y = mid2_y - dist2_cm
-
-                sp = sk.SketchPoints.Add(tg.CreatePoint2d(target_x, target_y))
-
-                # Aggiunta quote parametriche grafiche visibili
-                try:
-                    tp1 = tg.CreatePoint2d((mid1_x + target_x) / 2.0, target_y + 1.0)
-                    sk.DimensionConstraints.AddTwoPointDistance(proj1.StartSketchPoint, sp, 19203, tp1, False)
-                except Exception:
-                    pass
-                try:
-                    tp2 = tg.CreatePoint2d(target_x + 1.0, (mid2_y + target_y) / 2.0)
-                    sk.DimensionConstraints.AddTwoPointDistance(proj2.StartSketchPoint, sp, 19203, tp2, False)
-                except Exception:
-                    pass
-
-                try:
-                    sk.Solve()
-                except Exception:
-                    pass
-
-                coll = inv_app.TransientObjects.CreateObjectCollection()
-                coll.Add(sp)
-                placement_def = hole_features.CreateSketchPlacementDefinition(coll)
-                return placement_def, f"Posizionato a {dist1_mm} mm da {bordo1} e {dist2_mm} mm da {bordo2}"
-            except Exception as e:
+                tp1 = tg.CreatePoint2d((min_u + target_x) / 2.0, target_y + 1.0)
+                sk.DimensionConstraints.AddTwoPointDistance(proj1.StartSketchPoint, sp, 19203, tp1, False)
+            except Exception:
                 pass
+        if ref_edge2:
+            try:
+                proj2 = sk.AddByProjectingEntity(ref_edge2)
+                tp2 = tg.CreatePoint2d(target_x + 1.0, (min_v + target_y) / 2.0)
+                sk.DimensionConstraints.AddTwoPointDistance(proj2.StartSketchPoint, sp, 19203, tp2, False)
+            except Exception:
+                pass
+
+        try:
+            sk.Solve()
+        except Exception:
+            pass
+
+        coll = inv_app.TransientObjects.CreateObjectCollection()
+        coll.Add(sp)
+        placement_def = hole_features.CreateSketchPlacementDefinition(coll)
+        return placement_def, f"Posizionato a {dist1_mm} mm da {bordo1} e {dist2_mm} mm da {bordo2} (X={target_x*10:.1f} mm, Y={target_y*10:.1f} mm)"
 
     # --- STRATEGIA 3: COORDINATE ASSOLUTE O CENTRO ---
     pos_x_mm = params.get("pos_x_mm", 0.0)
