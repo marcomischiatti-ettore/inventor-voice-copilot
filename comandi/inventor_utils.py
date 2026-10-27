@@ -57,6 +57,18 @@ def normalizza_frase(frase: str) -> str:
     # Stacca numeri da mm/cm (es. 20mm -> 20 mm)
     f = re.sub(r'(\d+)(mm|millimetri)\b', r'\1 \2', f)
     f = re.sub(r'(\d+)(cm|centimetri)\b', r'\1 \2', f)
+    # Normalizzazione preposizioni articolate d'officina per riferimenti bordi/spigoli
+    f = re.sub(r'\bdall[\'\s]?alto\b', 'da alto', f)
+    f = re.sub(r'\bdall[\'\s]?altra\b', 'da altra', f)
+    f = re.sub(r'\bdall[\'\s]?inizio\b', 'da inizio', f)
+    f = re.sub(r'\bdal[\s]?fondo\b', 'da fondo', f)
+    f = re.sub(r'\bdal[\s]?basso\b', 'da basso', f)
+    f = re.sub(r'\bdal[\s]?sotto\b', 'da sotto', f)
+    f = re.sub(r'\bdal[\s]?sopra\b', 'da sopra', f)
+    f = re.sub(r'\bdal[\s]?sinistro\b', 'da sinistro', f)
+    f = re.sub(r'\bdal[\s]?destro\b', 'da destro', f)
+    f = re.sub(r'\bdalla[\s]?sinistra\b', 'da sinistra', f)
+    f = re.sub(r'\bdalla[\s]?destra\b', 'da destra', f)
     return f
 
 
