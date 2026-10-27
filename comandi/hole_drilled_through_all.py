@@ -2,7 +2,7 @@
 comandi/hole_drilled_through_all.py
 Modulo vocale: Foro Passante Semplice (HoleFeatures.AddDrilledByThroughAllExtent).
 Supporta:
-- Posizionamento lineare da bordi/spigoli (CreateLinearPlacementDefinition)
+- Posizionamento lineare da bordi/spigoli con quote parametriche visibili
 - Selezione interattiva a video (SelectSet)
 - Posizionamento concentrico su spigoli circolari
 - Coordinate X, Y e centro faccia
@@ -32,7 +32,8 @@ def analizza_frase_vocale(frase: str) -> Dict[str, Any]:
     f = frase.lower().strip()
     diametro_mm = estrai_diametro_foro(frase, default_mm=10.0)
 
-    direzione = kPositiveExtentDirection
+    # Invertita direzione verso l'interno del solido (kNegativeExtentDirection)
+    direzione = kNegativeExtentDirection
     if "entrambi" in f or "simmetric" in f:
         direzione = kSymmetricExtentDirection
 

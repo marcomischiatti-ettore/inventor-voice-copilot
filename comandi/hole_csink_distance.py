@@ -110,7 +110,7 @@ def esegui_comando(frase_vocale: str, test_mode: bool = False, part_doc=None) ->
 
         place_def, pos_msg = create_smart_hole_placement(inv_app, part_doc, params)
         hole_feat = cd.Features.HoleFeatures.AddCSinkByDistanceExtent(
-            place_def, d_cm, csd_cm, csa_rad, h_cm, kPositiveExtentDirection, False, deg_to_rad(118.0)
+            place_def, d_cm, csd_cm, csa_rad, h_cm, kNegativeExtentDirection, False, deg_to_rad(118.0)
         )
 
         trans.End()

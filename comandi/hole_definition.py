@@ -96,9 +96,9 @@ def esegui_comando(frase_vocale: str, test_mode: bool = False, part_doc=None) ->
 
         place_def, pos_msg = create_smart_hole_placement(inv_app, part_doc, params)
         if params["passante"]:
-            hole_feat = cd.Features.HoleFeatures.AddDrilledByThroughAllExtent(place_def, d_cm, kPositiveExtentDirection)
+            hole_feat = cd.Features.HoleFeatures.AddDrilledByThroughAllExtent(place_def, d_cm, kNegativeExtentDirection)
         else:
-            hole_feat = cd.Features.HoleFeatures.AddDrilledByDistanceExtent(place_def, d_cm, h_cm, kPositiveExtentDirection, False, deg_to_rad(118.0))
+            hole_feat = cd.Features.HoleFeatures.AddDrilledByDistanceExtent(place_def, d_cm, h_cm, kNegativeExtentDirection, False, deg_to_rad(118.0))
 
         trans.End()
         resoconto["successo"] = True

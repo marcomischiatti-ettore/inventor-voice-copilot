@@ -16,9 +16,9 @@ import sys
 from typing import Tuple, Any
 
 try:
-    from comandi.inventor_utils import get_inventor_app, get_or_create_part_doc
+    from comandi.inventor_utils import get_inventor_app, get_or_create_part_doc, normalizza_frase
 except ImportError:
-    from inventor_utils import get_inventor_app, get_or_create_part_doc
+    from inventor_utils import get_inventor_app, get_or_create_part_doc, normalizza_frase
 
 ROUTING_COMANDI = [
     # Extrude
@@ -27,12 +27,12 @@ ROUTING_COMANDI = [
     (r'(?:estrudi|estrusione|estrundi).*?(?:sformo|conico|inclinazione)', "extrude_definition"),
     (r'(?:estrudi|estrusione|estrundi|parallelepipedo|blocco|piastra|lastra|cubo|rettangolo)', "extrude_distance"),
 
-    # Hole (priorità assoluta: 1. Filettati/Maschiati, 2. Svasati, 3. Lamati, 4. Passanti lisci, 5. Ciechi)
+    # Hole (priorità: 1. Filettati/Maschiati, 2. Svasati, 3. Lamati, 4. Ciechi con profondità esplicita, 5. Passanti di default)
     (r'(?:filettat|maschiat|\bm\d+\b)', "hole_definition"),
     (r'(?:svas|svaso|svasatur)', "hole_csink_distance"),
     (r'(?:lamat|lamatura|controfor)', "hole_cbore_distance"),
-    (r'(?:passante|attraverso)', "hole_drilled_through_all"),
-    (r'(?:foro|foratura|cieco)', "hole_drilled_distance"),
+    (r'(?:cieco|profondit[àa]|profondo)', "hole_drilled_distance"),
+    (r'(?:passante|attraverso|foro|foratura)', "hole_drilled_through_all"),
 
     # Thread
     (r'(?:configura|imposta).*?(?:filettatura|passo|classe)', "thread_create_info"),
@@ -82,11 +82,11 @@ def carica_modulo(modulo_id: str):
 
 
 def interpreta_ed_esegui(frase_vocale: str, test_mode: bool = False, part_doc=None) -> Tuple[str, Any]:
-    f_lower = frase_vocale.lower().strip()
+    f_norm = normalizza_frase(frase_vocale)
     target_id = None
 
     for pattern, mod_id in ROUTING_COMANDI:
-        if re.search(pattern, f_lower):
+        if re.search(pattern, f_norm):
             target_id = mod_id
             break
 

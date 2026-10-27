@@ -2,7 +2,7 @@
 comandi/hole_drilled_distance.py
 Modulo vocale: Foro Cieco Semplice a Distanza (HoleFeatures.AddDrilledByDistanceExtent).
 Supporta:
-- Posizionamento lineare da bordi/spigoli (CreateLinearPlacementDefinition)
+- Posizionamento lineare da bordi/spigoli con quote parametriche visibili
 - Selezione interattiva a video (SelectSet)
 - Posizionamento concentrico su spigoli circolari
 - Coordinate X, Y e centro faccia
@@ -117,7 +117,7 @@ def esegui_comando(frase_vocale: str, test_mode: bool = False, part_doc=None) ->
             place_def,
             diametro_cm,
             profondita_cm,
-            kPositiveExtentDirection,
+            kNegativeExtentDirection, # Verso l'interno del solido
             params["fondo_piatto"],
             angolo_punta_rad
         )
