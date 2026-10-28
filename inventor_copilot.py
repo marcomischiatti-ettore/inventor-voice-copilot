@@ -67,7 +67,10 @@ ROUTING_COMANDI = [
     (r'(?:loft|transizione|raccordo\s+tra\s+sezioni)', "loft_standard"),
 
     # Sweep
-    (r'(?:sweep|estrusione\s+lungo|guida)', "sweep_path")
+    (r'(?:sweep|estrusione\s+lungo|guida)', "sweep_path"),
+
+    # Drawing (Messa in Tavola)
+    (r'(?:tavola|disegno|messa\s+in\s+tavola|crea\s+disegno|\.idw|\.dwg)', "drawing_create_from_active")
 ]
 
 

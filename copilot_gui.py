@@ -2,7 +2,10 @@
 copilot_gui.py
 Interfaccia Grafica Moderna per Autodesk Inventor Voice Copilot.
 Costruita con CustomTkinter.
-Risolve il multithreading COM tramite pythoncom.CoInitialize().
+Include Navigazione a Schede (TabControl / CTkTabview):
+1. Modellazione / Copilot 3D
+2. Messa in Tavola (.idw / .dwg)
+3. Dashboard Grafici & Statistiche
 """
 
 import os
@@ -22,22 +25,27 @@ try:
 except ImportError:
     from comandi.inventor_utils import get_inventor_app, get_or_create_part_doc
 
+from ui.tabs.modeling_tab import ModelingTab
+from ui.tabs.drawing_tab import DrawingTab
+from ui.tabs.charts_tab import ChartsTab
+from commands.drawing_commands import crea_tavola_da_modello_attivo
+
 
 class InventorCopilotApp(ctk.CTk):
     def __init__(self):
         super().__init__()
 
         self.title("Autodesk Inventor AI Copilot")
-        self.geometry("900x720")
-        self.minsize(740, 580)
+        self.geometry("940x760")
+        self.minsize(800, 620)
 
-        # Configurazione layout
+        # Configurazione layout principale
         self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(2, weight=1)
+        self.grid_rowconfigure(1, weight=1)
 
-        # 1. Header Frame
+        # 1. Header Frame (Sempre visibile e condiviso)
         self.header_frame = ctk.CTkFrame(self, corner_radius=10, fg_color="#1e1e2d")
-        self.header_frame.grid(row=0, column=0, padx=20, pady=(20, 10), sticky="ew")
+        self.header_frame.grid(row=0, column=0, padx=20, pady=(15, 10), sticky="ew")
 
         self.title_label = ctk.CTkLabel(
             self.header_frame,
@@ -69,85 +77,61 @@ class InventorCopilotApp(ctk.CTk):
         )
         self.btn_connect.pack(side="right", padx=10, pady=15)
 
-        # 2. Quick Actions Frame
-        self.actions_frame = ctk.CTkFrame(self, corner_radius=10, fg_color="#181824")
-        self.actions_frame.grid(row=1, column=0, padx=20, pady=10, sticky="ew")
-
-        self.quick_label = ctk.CTkLabel(
-            self.actions_frame,
-            text="Comandi Rapidi:",
-            font=ctk.CTkFont(size=13, weight="bold"),
-            text_color="#94a3b8"
-        )
-        self.quick_label.pack(side="left", padx=15, pady=10)
-
-        comandi_rapidi = [
-            ("Demo 3D Completa", self.avvia_demo),
-            ("Piastra 100x100x10", lambda: self.esegui_frase("fai una piastra 100x100x10")),
-            ("Foro da Bordi 20x30", lambda: self.esegui_frase("foro passante diametro 10 a 20 mm da sinistra e 30 mm dal fondo")),
-            ("Foro Passante Ø16", lambda: self.esegui_frase("foro passante diametro 16 mm al centro")),
-            ("Smusso 3 mm", lambda: self.esegui_frase("smusso di 3 mm su tutti gli spigoli")),
-            ("Svuota Parete 2.5", lambda: self.esegui_frase("svuota il solido con spessore 2.5 mm"))
-        ]
-
-        for nome, cmd in comandi_rapidi:
-            btn = ctk.CTkButton(
-                self.actions_frame,
-                text=nome,
-                font=ctk.CTkFont(size=11),
-                height=28,
-                fg_color="#334155",
-                hover_color="#475569",
-                command=cmd
-            )
-            btn.pack(side="left", padx=4, pady=10)
-
-        # 3. Chat / Console Log Frame
-        self.log_box = ctk.CTkTextbox(
+        # 2. Tabview Principale (Navigazione a Schede)
+        self.tabview = ctk.CTkTabview(
             self,
-            font=ctk.CTkFont(family="Consolas", size=13),
-            corner_radius=10,
-            fg_color="#0f172a",
-            text_color="#e2e8f0"
+            corner_radius=12,
+            fg_color="#13131f",
+            segmented_button_fg_color="#1e1e2d",
+            segmented_button_selected_color="#2563eb",
+            segmented_button_selected_hover_color="#1d4ed8",
+            segmented_button_unselected_color="#1e1e2d",
+            segmented_button_unselected_hover_color="#334155"
         )
-        self.log_box.grid(row=2, column=0, padx=20, pady=10, sticky="nsew")
+        self.tabview.grid(row=1, column=0, padx=20, pady=(0, 15), sticky="nsew")
 
-        # 4. Input Vocale / Testuale Frame
-        self.input_frame = ctk.CTkFrame(self, corner_radius=10, fg_color="#1e1e2d")
-        self.input_frame.grid(row=3, column=0, padx=20, pady=(10, 20), sticky="ew")
-        self.input_frame.grid_columnconfigure(0, weight=1)
+        # Creazione delle 3 schede
+        self.tab_modeling_ui = self.tabview.add("Modellazione 3D")
+        self.tab_drawing_ui = self.tabview.add("Messa in Tavola")
+        self.tab_charts_ui = self.tabview.add("Grafici & Statistiche")
 
-        self.entry_command = ctk.CTkEntry(
-            self.input_frame,
-            placeholder_text="Scrivi o usa Win+H (es. 'foro diametro 10 a 20 mm da sinistra e 30 mm da sotto', 'svuota faccia frontale')...",
-            font=ctk.CTkFont(size=13),
-            height=45,
-            corner_radius=8
+        # Configurazione layout interno schede
+        self.tab_modeling_ui.grid_columnconfigure(0, weight=1)
+        self.tab_modeling_ui.grid_rowconfigure(0, weight=1)
+        self.tab_drawing_ui.grid_columnconfigure(0, weight=1)
+        self.tab_drawing_ui.grid_rowconfigure(0, weight=1)
+        self.tab_charts_ui.grid_columnconfigure(0, weight=1)
+        self.tab_charts_ui.grid_rowconfigure(0, weight=1)
+
+        # Inizializzazione viste delle schede
+        self.modeling_view = ModelingTab(
+            self.tab_modeling_ui,
+            execute_command_callback=self.esegui_frase,
+            launch_demo_callback=self.avvia_demo
         )
-        self.entry_command.grid(row=0, column=0, padx=(15, 10), pady=12, sticky="ew")
-        self.entry_command.bind("<Return>", lambda e: self.invia_comando())
+        self.modeling_view.pack(fill="both", expand=True)
 
-        self.btn_send = ctk.CTkButton(
-            self.input_frame,
-            text="Invia a Inventor",
-            font=ctk.CTkFont(size=13, weight="bold"),
-            height=45,
-            fg_color="#10b981",
-            hover_color="#059669",
-            command=self.invia_comando
+        self.drawing_view = DrawingTab(
+            self.tab_drawing_ui,
+            log_callback=self.stampa_log,
+            execute_drawing_callback=self.esegui_creazione_tavola
         )
-        self.btn_send.grid(row=0, column=1, padx=(0, 15), pady=12)
+        self.drawing_view.pack(fill="both", expand=True)
 
-        # Log iniziale
+        self.charts_view = ChartsTab(self.tab_charts_ui)
+        self.charts_view.pack(fill="both", expand=True)
+
+        # Log iniziale nella scheda modellazione
         self.stampa_log("[SISTEMA] Autodesk Inventor Voice Copilot inizializzato.")
         self.stampa_log("[INFO] Smart Placement Attivo: supporta quote da bordi/spigoli, SelectSet a video e direzioni semantiche.")
+        self.stampa_log("[INFO] Scheda 'Messa in Tavola' pronta: generazione automatica tavole 2D (.idw) da parti e assiemi.")
         self.stampa_log("[INFO] Inizializzazione COM thread-safe completata.")
 
-        # Avvia controllo Inventor in background con CoInitialize
+        # Avvia controllo Inventor in background
         threading.Thread(target=self.verifica_inventor, daemon=True).start()
 
     def stampa_log(self, testo: str):
-        self.after(0, lambda: (self.log_box.insert("end", testo + "\n"), self.log_box.see("end")))
+        self.after(0, lambda: self.modeling_view.append_log(testo))
 
     def aggiorna_badge(self, testo: str, fg: str, text_col: str):
         self.after(0, lambda: self.status_badge.configure(text=testo, fg_color=fg, text_color=text_col))
@@ -201,13 +185,6 @@ class InventorCopilotApp(ctk.CTk):
 
         threading.Thread(target=_task, daemon=True).start()
 
-    def invia_comando(self):
-        testo = self.entry_command.get().strip()
-        if not testo:
-            return
-        self.entry_command.delete(0, "end")
-        self.esegui_frase(testo)
-
     def esegui_frase(self, frase: str):
         self.stampa_log(f"\n>>> COMANDO UTENTE: \"{frase}\"")
         def _worker():
@@ -218,30 +195,56 @@ class InventorCopilotApp(ctk.CTk):
                 if res.get("successo"):
                     self.stampa_log(f"[OK - {mod_id}] {res.get('dettagli')}")
                 else:
-                    self.stampa_log(f"[FALLITO - {mod_id}] {res.get('errore')}")
-            except Exception as ex:
-                self.stampa_log(f"[ERRORE DI ESECUZIONE]: {ex}")
+                    self.stampa_log(f"[FALLITO - {mod_id}] Errore: {res.get('errore')}")
+            except Exception as e:
+                self.stampa_log(f"[ECCEZIONE] {e}")
+            finally:
+                pythoncom.CoUninitialize()
+
+        threading.Thread(target=_worker, daemon=True).start()
+
+    def esegui_creazione_tavola(self, formato: str, orientamento: str, cartiglio: str):
+        self.stampa_log(f"\n>>> AZIONE: Generazione nuova tavola 2D (Foglio: {formato}, Orientamento: {orientamento}, Cartiglio: {cartiglio})...")
+        def _worker():
+            pythoncom.CoInitialize()
+            try:
+                res = crea_tavola_da_modello_attivo(
+                    formato_foglio=formato,
+                    orientamento=orientamento,
+                    nome_cartiglio=cartiglio,
+                    test_mode=False
+                )
+                if res.get("successo"):
+                    self.stampa_log(f"[OK - Messa in Tavola]\n{res.get('dettagli')}")
+                else:
+                    self.stampa_log(f"[ERRORE - Messa in Tavola] {res.get('errore')}")
+            except Exception as e:
+                self.stampa_log(f"[ECCEZIONE Messa in Tavola] {e}")
             finally:
                 pythoncom.CoUninitialize()
 
         threading.Thread(target=_worker, daemon=True).start()
 
     def avvia_demo(self):
-        self.stampa_log("\n>>> AVVIO SEQUENZA DEMO 3D INVENTOR...")
-        def _demo_worker():
+        self.stampa_log("\n>>> AVVIO DEMO 3D COMPLETA...")
+        def _worker():
             pythoncom.CoInitialize()
             try:
                 from inventor_copilot import esegui_demo_live
                 esegui_demo_live()
-                self.stampa_log("[DEMO COMPLETATA] Verifica la finestra 3D di Autodesk Inventor!")
-            except Exception as ex:
-                self.stampa_log(f"[ERRORE DEMO]: {ex}")
+                self.stampa_log("[OK] Demo 3D completata con successo!")
+            except Exception as e:
+                self.stampa_log(f"[ERRORE DEMO] {e}")
             finally:
                 pythoncom.CoUninitialize()
 
-        threading.Thread(target=_demo_worker, daemon=True).start()
+        threading.Thread(target=_worker, daemon=True).start()
+
+
+def avvia_gui():
+    app = InventorCopilotApp()
+    app.mainloop()
 
 
 if __name__ == "__main__":
-    app = InventorCopilotApp()
-    app.mainloop()
+    avvia_gui()
