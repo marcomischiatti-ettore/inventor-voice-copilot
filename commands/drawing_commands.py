@@ -251,8 +251,8 @@ def crea_tavola_da_modello_attivo(
         resoconto["successo"] = True
         resoconto["dettagli"] = (
             f"Simulazione creazione tavola superata: Foglio {formato_foglio} {orientamento}, "
-            f"Bordo: '{nome_bordo or 'Bordo di default'}', Cartiglio: '{nome_cartiglio or 'Default Modello'}', "
-            f"Viste: 4 (Frontale, Superiore, Sinistra, 3D Iso), Sfondo: Bianco"
+            f"Bordo: '{nome_bordo or 'Bordo di default'}', Cartiglio: '{nome_cartiglio or 'Angeleri no contorno'}', "
+            f"Viste: 4 (Frontale, Superiore, Sinistra, 3D Iso), Sfondo: Grigio chiaro (da Modello Tavola)"
         )
         return resoconto
 
@@ -302,11 +302,28 @@ def crea_tavola_da_modello_attivo(
     try:
         sheet = draw_doc.ActiveSheet
 
-        # 3.1 IMPOSTAZIONE SFONDO FOGLIO BIANCO PURO
+        # 3.1 IMPOSTAZIONE SFONDO FOGLIO (Grigio chiaro come da Modello Tavola)
         try:
-            tg = inv_app.TransientObjects
-            bianco = tg.CreateColor(255, 255, 255)
-            draw_doc.SheetSettings.SheetColor = bianco
+            colore_copiato = False
+            # Verifica se tra i documenti aperti in Inventor c'è il modello tavola per replicarne fedelmente il colore
+            for i in range(1, inv_app.Documents.Count + 1):
+                d = inv_app.Documents.Item(i)
+                if d.DocumentType == kDrawingDocumentObject and ("modello" in d.DisplayName.lower() or "tavola" in d.DisplayName.lower()):
+                    try:
+                        c_modello = d.SheetSettings.SheetColor
+                        if c_modello:
+                            draw_doc.SheetSettings.SheetColor = c_modello
+                            colore_copiato = True
+                            break
+                    except Exception:
+                        pass
+
+            # Se non trovato tra i documenti aperti e non stiamo usando il template locale,
+            # imposta un grigio chiaro tecnico da disegno (240, 240, 240) anziché bianco puro
+            if not colore_copiato and not (tmpl_da_usare and os.path.exists(tmpl_da_usare)):
+                tg = inv_app.TransientObjects
+                grigio_chiaro = tg.CreateColor(240, 240, 240)
+                draw_doc.SheetSettings.SheetColor = grigio_chiaro
         except Exception:
             pass
 
@@ -391,45 +408,54 @@ def crea_tavola_da_modello_attivo(
                 try:
                     applicato_bordo = sheet.Border.Name
                 except Exception:
-                    applicato_bordo = "Bordo presente"
+                    applicato_bordo = "Bordo di default"
 
         # 3.4 GESTIONE CARTIGLIO (Title Block - es. 'Angeleri no contorno')
-        applicato_cartiglio = "Default Modello"
+        applicato_cartiglio = "Angeleri no contorno"
         if nome_cartiglio and nome_cartiglio.strip().lower() == "nessuno":
             if sheet.TitleBlock:
                 try:
                     sheet.TitleBlock.Delete()
-                    applicato_cartiglio = "Nessuno"
+                    applicato_cartiglio = "Nessuno (Rimosso)"
                 except Exception:
                     pass
         else:
-            target_tb = None
-            if nome_cartiglio and nome_cartiglio.strip():
-                nc = nome_cartiglio.strip().lower()
-                for t_idx in range(1, draw_doc.TitleBlockDefinitions.Count + 1):
-                    tb_cand = draw_doc.TitleBlockDefinitions.Item(t_idx)
-                    tb_name = tb_cand.Name.strip().lower()
-                    if tb_name == nc or nc in tb_name or tb_name in nc:
-                        target_tb = tb_cand
-                        break
+            # Se il foglio ha già il cartiglio attivo dal template (MODELLO_TAVOLA.idw), PRESERVALO!
+            if sheet.TitleBlock is not None:
+                try:
+                    applicato_cartiglio = sheet.TitleBlock.Definition.Name
+                except Exception:
+                    applicato_cartiglio = "Angeleri no contorno"
+            else:
+                # Il foglio non ha un cartiglio: inseriscilo dalle definizioni del template
+                target_tb = None
+                if nome_cartiglio and nome_cartiglio.strip():
+                    nc = nome_cartiglio.strip().lower()
+                    for t_idx in range(1, draw_doc.TitleBlockDefinitions.Count + 1):
+                        tb_cand = draw_doc.TitleBlockDefinitions.Item(t_idx)
+                        tb_name = tb_cand.Name.strip().lower()
+                        if tb_name == nc or nc in tb_name or tb_name in nc:
+                            target_tb = tb_cand
+                            break
 
-            # Se non trovato per nome o non specificato, usa la prima definizione del template
-            if target_tb is None and draw_doc.TitleBlockDefinitions.Count > 0:
-                target_tb = draw_doc.TitleBlockDefinitions.Item(1)
+                if target_tb is None and draw_doc.TitleBlockDefinitions.Count > 0:
+                    target_tb = draw_doc.TitleBlockDefinitions.Item(1)
 
-            if target_tb is not None:
-                if sheet.TitleBlock is None or sheet.TitleBlock.Name.strip().lower() != target_tb.Name.strip().lower():
+                if target_tb is not None:
                     try:
-                        if sheet.TitleBlock:
-                            sheet.TitleBlock.Delete()
                         sheet.AddTitleBlock(target_tb)
                         applicato_cartiglio = target_tb.Name
                     except Exception:
-                        pass
-                else:
-                    applicato_cartiglio = sheet.TitleBlock.Name
-            elif sheet.TitleBlock is not None:
-                applicato_cartiglio = sheet.TitleBlock.Name
+                        try:
+                            # Se richiede PromptStrings per i campi compilabili (kBottomRightPosition = 10244)
+                            sheet.AddTitleBlock(target_tb, 10244, [""] * 40)
+                            applicato_cartiglio = target_tb.Name
+                        except Exception:
+                            try:
+                                sheet.AddTitleBlock(target_tb, 10244)
+                                applicato_cartiglio = target_tb.Name
+                            except Exception:
+                                pass
 
         # 3.4 INSERIMENTO DISPOSIZIONE A 4 VISTE (Standard Proiezione Europea ISO)
         # Coordinate foglio: width e height in cm
@@ -514,9 +540,9 @@ def crea_tavola_da_modello_attivo(
         resoconto["dettagli"] = (
             f"Tavola 2D generata con successo su '{tmpl_da_usare or 'Standard'}':\n"
             f"- Modello: {model_doc.DisplayName}\n"
-            f"- Foglio: {formato_foglio} ({orientamento}) - Sfondo BIANCO puro\n"
+            f"- Foglio: {formato_foglio} ({orientamento}) - Sfondo Grigio Chiaro (da Modello Tavola)\n"
             f"- Bordo: {applicato_bordo}\n"
-            f"- Cartiglio: {sheet.TitleBlock.Name if sheet.TitleBlock else 'Nessuno'}\n"
+            f"- Cartiglio: {applicato_cartiglio}\n"
             f"- Viste Generate: 4 (Frontale, Superiore, Sinistra, 3D Assonometrica)"
         )
         return resoconto
