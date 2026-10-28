@@ -107,6 +107,9 @@ class DrawingTab(ctk.CTkFrame):
     def apri_dialog_nuova_tavola(self):
         NewDrawingDialog(self.winfo_toplevel(), on_confirm=self._on_drawing_confirmed)
 
-    def _on_drawing_confirmed(self, formato: str, orientamento: str, cartiglio: str):
+    def _on_drawing_confirmed(self, formato: str, orientamento: str, cartiglio: str, bordo: str = "Bordo di default"):
         if self.execute_drawing_callback:
-            self.execute_drawing_callback(formato, orientamento, cartiglio)
+            try:
+                self.execute_drawing_callback(formato, orientamento, cartiglio, bordo)
+            except TypeError:
+                self.execute_drawing_callback(formato, orientamento, cartiglio)

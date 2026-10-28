@@ -19,11 +19,17 @@ def analizza_frase_vocale(frase: str) -> Dict[str, Any]:
     orientamento = "Orizzontale"
     if "vertical" in f or "portrait" in f:
         orientamento = "Verticale"
+
+    # Bordo
+    nome_bordo = "Bordo di default"
+    if "senza bordo" in f or "no bordo" in f:
+        nome_bordo = "Nessuno"
         
     return {
         "formato_foglio": formato,
         "orientamento": orientamento,
         "nome_cartiglio": None,
+        "nome_bordo": nome_bordo,
         "frase_originale": frase
     }
 
@@ -33,6 +39,7 @@ def esegui_comando(frase_vocale: str, test_mode: bool = False, part_doc=None) ->
         formato_foglio=params["formato_foglio"],
         orientamento=params["orientamento"],
         nome_cartiglio=params["nome_cartiglio"],
+        nome_bordo=params.get("nome_bordo", "Bordo di default"),
         test_mode=test_mode
     )
     return res

@@ -203,8 +203,8 @@ class InventorCopilotApp(ctk.CTk):
 
         threading.Thread(target=_worker, daemon=True).start()
 
-    def esegui_creazione_tavola(self, formato: str, orientamento: str, cartiglio: str):
-        self.stampa_log(f"\n>>> AZIONE: Generazione nuova tavola 2D (Foglio: {formato}, Orientamento: {orientamento}, Cartiglio: {cartiglio})...")
+    def esegui_creazione_tavola(self, formato: str, orientamento: str, cartiglio: str, bordo: str = "Bordo di default"):
+        self.stampa_log(f"\n>>> AZIONE: Generazione nuova tavola 2D (Foglio: {formato}, Orientamento: {orientamento}, Cartiglio: {cartiglio}, Bordo: {bordo})...")
         def _worker():
             pythoncom.CoInitialize()
             try:
@@ -212,6 +212,7 @@ class InventorCopilotApp(ctk.CTk):
                     formato_foglio=formato,
                     orientamento=orientamento,
                     nome_cartiglio=cartiglio,
+                    nome_bordo=bordo,
                     test_mode=False
                 )
                 if res.get("successo"):

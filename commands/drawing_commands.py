@@ -79,18 +79,23 @@ def get_template_path() -> str:
     return ""
 
 
-def get_inventor_app_safe():
-    """Ottiene l'istanza attiva di Inventor con fallback su Dispatch."""
+def get_inventor_app_safe(allow_dispatch: bool = False):
+    """
+    Ottiene l'istanza attiva di Inventor (GetActiveObject).
+    Non avvia nuovi processi a meno che allow_dispatch non sia True.
+    """
     import win32com.client
     try:
         app = win32com.client.GetActiveObject("Inventor.Application")
+        return app
     except Exception:
-        app = win32com.client.Dispatch("Inventor.Application")
-    try:
-        app.Visible = True
-    except Exception:
-        pass
-    return app
+        if allow_dispatch:
+            try:
+                app = win32com.client.Dispatch("Inventor.Application")
+                return app
+            except Exception:
+                return None
+        return None
 
 
 def get_available_drawing_resources(inv_app=None) -> Dict[str, List[str]]:
@@ -150,20 +155,35 @@ def get_available_drawing_resources(inv_app=None) -> Dict[str, List[str]]:
 
 
 def get_available_title_blocks(inv_app=None) -> List[str]:
-    """Lista combinata per la combobox della UI."""
+    """Lista dei soli Cartigli (Title Blocks) per la combobox della UI."""
     res = get_available_drawing_resources(inv_app)
     elenco = []
 
-    for c in res["cartigli"]:
+    for c in res.get("cartigli", []):
         if c not in elenco:
             elenco.append(c)
 
-    for b in res["bordi"]:
+    # Fallback standard basato sul template aziendale F.lli Angeleri
+    if not elenco:
+        elenco = ["Angeleri no contorno", "Cartiglio Angelieri", "Cartiglio ISO"]
+
+    if "Nessuno" not in elenco:
+        elenco.append("Nessuno")
+
+    return elenco
+
+
+def get_available_borders(inv_app=None) -> List[str]:
+    """Lista delle definizioni di Bordo per la UI."""
+    res = get_available_drawing_resources(inv_app)
+    elenco = []
+
+    for b in res.get("bordi", []):
         if b not in elenco:
             elenco.append(b)
 
     if not elenco:
-        elenco = ["Cartiglio Angelieri", "Cartiglio ISO", "No Contorno"]
+        elenco = ["Bordo di default"]
 
     if "Nessuno" not in elenco:
         elenco.append("Nessuno")
@@ -200,6 +220,7 @@ def crea_tavola_da_modello_attivo(
     formato_foglio: str = "A3",
     orientamento: str = "Orizzontale",
     nome_cartiglio: Optional[str] = None,
+    nome_bordo: Optional[str] = "Bordo di default",
     scala: float = 1.0,
     test_mode: bool = False,
     template_path: str = ""
@@ -207,19 +228,21 @@ def crea_tavola_da_modello_attivo(
     """
     Crea una nuova messa in tavola (.idw) professionale da modello 3D attivo (.ipt / .iam):
     - Foglio con sfondo BIANCO puro
-    - Template aziendale MODELLO_TAVOLA.idw (con cartiglio F.lli Angelieri)
+    - Template aziendale MODELLO_TAVOLA.idw (con cartiglio F.lli Angeleri e bordo di default)
+    - Bordo semplice lineare ('Bordo di default') sempre applicato o preservato
     - Proiezione completa 4 viste ortogonali/assonometriche:
         * Frontale (principale)
         * Superiore (Top View proiettata)
         * Sinistra (Left View proiettata)
         * Assonometrica 3D (Iso View in basso a sinistra)
-    - Cartiglio e squadratura "No Contorno" corretti
+    - Cartiglio aziendale ('Angeleri no contorno' / ISO)
     """
     resoconto = {
         "successo": False,
         "formato_foglio": formato_foglio,
         "orientamento": orientamento,
         "nome_cartiglio": nome_cartiglio,
+        "nome_bordo": nome_bordo,
         "dettagli": "",
         "errore": None
     }
@@ -228,7 +251,8 @@ def crea_tavola_da_modello_attivo(
         resoconto["successo"] = True
         resoconto["dettagli"] = (
             f"Simulazione creazione tavola superata: Foglio {formato_foglio} {orientamento}, "
-            f"Cartiglio/Bordo: '{nome_cartiglio or 'Default'}', Viste: 4 (Frontale, Superiore, Sinistra, 3D Iso), Sfondo: Bianco"
+            f"Bordo: '{nome_bordo or 'Bordo di default'}', Cartiglio: '{nome_cartiglio or 'Default Modello'}', "
+            f"Viste: 4 (Frontale, Superiore, Sinistra, 3D Iso), Sfondo: Bianco"
         )
         return resoconto
 
@@ -312,77 +336,100 @@ def crea_tavola_da_modello_attivo(
             except Exception:
                 pass
 
-        # 3.3 Gestione Bordo ("No Contorno") & Cartiglio
-        applicato_cartiglio = "Default Modello"
-        applicato_bordo = "Default Modello"
-
-        if nome_cartiglio:
-            nome_c_clean = nome_cartiglio.strip()
-            nome_c_lower = nome_c_clean.lower()
-
-            if "contorno" in nome_c_lower or "bordo" in nome_c_lower:
-                # Tratta la selezione come BORDO (es. "No Contorno")
-                if "no contorno" in nome_c_lower or "senza bordo" in nome_c_lower:
-                    try:
-                        if sheet.Border:
-                            sheet.Border.Delete()
-                        applicato_bordo = "No Contorno (Rimosso)"
-                    except Exception:
-                        pass
-                else:
-                    target_b_def = None
-                    try:
-                        for b_idx in range(1, draw_doc.BorderDefinitions.Count + 1):
-                            bd = draw_doc.BorderDefinitions.Item(b_idx)
-                            if bd.Name.strip().lower() == nome_c_lower:
-                                target_b_def = bd
-                                break
-                    except Exception:
-                        pass
-                    if target_b_def:
-                        try:
-                            if sheet.Border:
-                                sheet.Border.Delete()
-                            sheet.AddBorder(target_b_def)
-                            applicato_bordo = target_b_def.Name
-                        except Exception:
-                            pass
-            elif nome_c_lower == "nessuno":
-                if sheet.TitleBlock:
-                    try:
-                        sheet.TitleBlock.Delete()
-                    except Exception:
-                        pass
-                applicato_cartiglio = "Nessuno"
-            else:
-                # Applica o sostituisci cartiglio
-                target_tb_def = None
+        # 3.3 GESTIONE BORDO LINEARE SEMPLICE ('Bordo di default')
+        applicato_bordo = "Bordo di default"
+        if nome_bordo and nome_bordo.strip().lower() == "nessuno":
+            if sheet.Border:
                 try:
-                    for tb_idx in range(1, draw_doc.TitleBlockDefinitions.Count + 1):
-                        tbd = draw_doc.TitleBlockDefinitions.Item(tb_idx)
-                        if tbd.Name.strip().lower() == nome_c_lower:
-                            target_tb_def = tbd
-                            break
+                    sheet.Border.Delete()
+                    applicato_bordo = "Nessuno (Rimosso)"
                 except Exception:
                     pass
+        else:
+            # Assicura che sul foglio sia presente il bordo semplice lineare
+            if sheet.Border is None:
+                bordo_trovato = False
+                # Prova prima con la definizione presente nel template (es. "Bordo di default")
+                for b_idx in range(1, draw_doc.BorderDefinitions.Count + 1):
+                    try:
+                        bd = draw_doc.BorderDefinitions.Item(b_idx)
+                        try:
+                            sheet.AddDefaultBorder(BorderDefinition=bd)
+                            applicato_bordo = bd.Name
+                            bordo_trovato = True
+                            break
+                        except Exception:
+                            pass
+                        try:
+                            sheet.AddBorder(bd)
+                            applicato_bordo = bd.Name
+                            bordo_trovato = True
+                            break
+                        except Exception:
+                            pass
+                    except Exception:
+                        pass
 
-                if target_tb_def:
+                # Se non ancora aggiunto, usa AddDefaultBorder() nativo
+                if not bordo_trovato and sheet.Border is None:
+                    try:
+                        sheet.AddDefaultBorder()
+                        applicato_bordo = "Bordo di default"
+                        bordo_trovato = True
+                    except Exception:
+                        pass
+
+                # Fallback con margini espliciti da 10 mm (1.0 cm) lineari
+                if not bordo_trovato and sheet.Border is None:
+                    try:
+                        sheet.AddDefaultBorder(0, 10499, 0, 10499, False, False, False, 1.0, 1.0, 1.0, 1.0)
+                        applicato_bordo = "Bordo di default (10mm)"
+                        bordo_trovato = True
+                    except Exception:
+                        pass
+            else:
+                try:
+                    applicato_bordo = sheet.Border.Name
+                except Exception:
+                    applicato_bordo = "Bordo presente"
+
+        # 3.4 GESTIONE CARTIGLIO (Title Block - es. 'Angeleri no contorno')
+        applicato_cartiglio = "Default Modello"
+        if nome_cartiglio and nome_cartiglio.strip().lower() == "nessuno":
+            if sheet.TitleBlock:
+                try:
+                    sheet.TitleBlock.Delete()
+                    applicato_cartiglio = "Nessuno"
+                except Exception:
+                    pass
+        else:
+            target_tb = None
+            if nome_cartiglio and nome_cartiglio.strip():
+                nc = nome_cartiglio.strip().lower()
+                for t_idx in range(1, draw_doc.TitleBlockDefinitions.Count + 1):
+                    tb_cand = draw_doc.TitleBlockDefinitions.Item(t_idx)
+                    tb_name = tb_cand.Name.strip().lower()
+                    if tb_name == nc or nc in tb_name or tb_name in nc:
+                        target_tb = tb_cand
+                        break
+
+            # Se non trovato per nome o non specificato, usa la prima definizione del template
+            if target_tb is None and draw_doc.TitleBlockDefinitions.Count > 0:
+                target_tb = draw_doc.TitleBlockDefinitions.Item(1)
+
+            if target_tb is not None:
+                if sheet.TitleBlock is None or sheet.TitleBlock.Name.strip().lower() != target_tb.Name.strip().lower():
                     try:
                         if sheet.TitleBlock:
                             sheet.TitleBlock.Delete()
-                        sheet.AddTitleBlock(target_tb_def)
-                        applicato_cartiglio = target_tb_def.Name
+                        sheet.AddTitleBlock(target_tb)
+                        applicato_cartiglio = target_tb.Name
                     except Exception:
                         pass
-
-        # Se nel template non c'è cartiglio e non è stato impostato 'Nessuno', inserisci il primo disponibile
-        if sheet.TitleBlock is None and (not nome_cartiglio or nome_cartiglio.strip().lower() != "nessuno"):
-            if draw_doc.TitleBlockDefinitions.Count > 0:
-                try:
-                    sheet.AddTitleBlock(draw_doc.TitleBlockDefinitions.Item(1))
+                else:
                     applicato_cartiglio = sheet.TitleBlock.Name
-                except Exception:
-                    pass
+            elif sheet.TitleBlock is not None:
+                applicato_cartiglio = sheet.TitleBlock.Name
 
         # 3.4 INSERIMENTO DISPOSIZIONE A 4 VISTE (Standard Proiezione Europea ISO)
         # Coordinate foglio: width e height in cm
