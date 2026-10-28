@@ -1,43 +1,56 @@
 """
 commands/drawing_commands.py
-Logica di automazione COM per Autodesk Inventor (DrawingDocument, Sheets, DrawingViews, TitleBlocks).
-Supporta:
-- Rilevamento e validazione documento 3D attivo (.ipt o .iam)
-- Creazione nuovo disegno (.idw / .dwg)
-- Configurazione formato foglio (A2, A3, A4, A5) e orientamento (Orizzontale, Verticale)
-- Inserimento dinamico del cartiglio con fallback ed estrazione dai disegni aperti/template
-- Inserimento vista base frontale centrata con rimozione linee nascoste
-- Supporto simulazione (test_mode=True)
-- Transazione atomica Inventor
+Logica di automazione COM per Autodesk Inventor (DrawingDocument, Sheets, DrawingViews, TitleBlocks, Borders).
+Risoluzione e allineamento con Inventor API 2021:
+- Mapping rigoroso DrawingSheetSizeEnum:
+    kA0DrawingSheetSize = 9993
+    kA1DrawingSheetSize = 9994
+    kA2DrawingSheetSize = 9995
+    kA3DrawingSheetSize = 9996
+    kA4DrawingSheetSize = 9997
+    A5 gestito tramite kCustomDrawingSheetSize (9986) con dimensioni 21.0 x 14.8 cm.
+- PageOrientationTypeEnum:
+    kLandscapePageOrientation = 10242
+    kPortraitPageOrientation = 10243
+- ViewOrientationTypeEnum & Style:
+    kFrontViewOrientation = 10764
+    kHiddenLineRemovedDrawingViewStyle = 32258
+- Gestione Intelligente Cartigli (TitleBlockDefinitions) e Bordi (BorderDefinitions):
+    Se il nome selezionato appartiene a un Bordo ("No Contorno", "Bordo...") o a un Cartiglio,
+    viene applicato correttamente nel rispettivo ramo (TitleBlock o Border).
+    Se la definizione non è presente nel nuovo documento, viene importata via CopyTo() dal modello/disegno sorgente.
+- Centratura e Fit della vista nel foglio (ThisApplication.ActiveView.Fit).
 """
 
 import os
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 import pythoncom
 
-# Enumeratori Autodesk Inventor Drawing
 # Document Types
 kPartDocumentObject = 12290
 kAssemblyDocumentObject = 12291
 kDrawingDocumentObject = 12292
 
-# DrawingSheetSizeEnum
-kA5DrawingSheetSize = 9993
-kA4DrawingSheetSize = 9994
-kA3DrawingSheetSize = 9995
-kA2DrawingSheetSize = 9996
-kCustomDrawingSheetSize = 9999
+# DrawingSheetSizeEnum ufficiali Autodesk Inventor
+kA0DrawingSheetSize = 9993
+kA1DrawingSheetSize = 9994
+kA2DrawingSheetSize = 9995
+kA3DrawingSheetSize = 9996
+kA4DrawingSheetSize = 9997
+kCustomDrawingSheetSize = 9986
 
 MAPPA_FORMATI_FOGLIO = {
-    "A5": kA5DrawingSheetSize,
-    "A4": kA4DrawingSheetSize,
-    "A3": kA3DrawingSheetSize,
+    "A0": kA0DrawingSheetSize,
+    "A1": kA1DrawingSheetSize,
     "A2": kA2DrawingSheetSize,
+    "A3": kA3DrawingSheetSize,
+    "A4": kA4DrawingSheetSize,
+    "A5": kCustomDrawingSheetSize,
 }
 
 # PageOrientationTypeEnum
-kPortraitPageOrientation = 10241
 kLandscapePageOrientation = 10242
+kPortraitPageOrientation = 10243
 
 MAPPA_ORIENTAMENTO = {
     "Orizzontale": kLandscapePageOrientation,
@@ -47,8 +60,10 @@ MAPPA_ORIENTAMENTO = {
 }
 
 # ViewOrientationTypeEnum & DrawingViewStyleEnum
-kFrontViewOrientation = 10754
-kHiddenLineDrawingViewStyle = 10243
+kFrontViewOrientation = 10764
+kTopViewOrientation = 10754
+kHiddenLineRemovedDrawingViewStyle = 32258
+kHiddenLineDrawingViewStyle = 32257
 
 
 def get_inventor_app_safe():
@@ -65,11 +80,10 @@ def get_inventor_app_safe():
     return app
 
 
-def get_available_title_blocks(inv_app=None) -> List[str]:
+def get_available_drawing_resources(inv_app=None) -> Dict[str, List[str]]:
     """
-    Recupera dinamicamente i nomi dei cartigli disponibili.
-    Cerca prima in tutti i disegni attualmente aperti in Inventor.
-    Se non trova disegni aperti, fornisce una lista standard con le definizioni tipiche ISO/UNI.
+    Rileva dinamicamente tutte le definizioni di Cartigli e Bordi presenti
+    in tutti i disegni attualmente aperti in Inventor.
     """
     if inv_app is None:
         try:
@@ -77,11 +91,11 @@ def get_available_title_blocks(inv_app=None) -> List[str]:
         except Exception:
             inv_app = None
 
-    cartigli_trovati = set()
+    cartigli = set()
+    bordi = set()
 
     if inv_app is not None:
         try:
-            # 1. Controlla in tutti i documenti aperti se c'è un disegno
             for i in range(1, inv_app.Documents.Count + 1):
                 doc = inv_app.Documents.Item(i)
                 if doc.DocumentType == kDrawingDocumentObject:
@@ -89,23 +103,76 @@ def get_available_title_blocks(inv_app=None) -> List[str]:
                         for j in range(1, doc.TitleBlockDefinitions.Count + 1):
                             name = doc.TitleBlockDefinitions.Item(j).Name
                             if name:
-                                cartigli_trovati.add(name)
+                                cartigli.add(name)
+                    except Exception:
+                        pass
+                    try:
+                        for j in range(1, doc.BorderDefinitions.Count + 1):
+                            b_name = doc.BorderDefinitions.Item(j).Name
+                            if b_name:
+                                bordi.add(b_name)
                     except Exception:
                         pass
         except Exception:
             pass
 
-    # Se abbiamo trovato cartigli nel disegno attivo o nei disegni aperti, restituiamoli
-    lista = sorted(list(cartigli_trovati))
-    
-    # Includi sempre "Nessuno" e le opzioni standard se la lista è vuota
-    if not lista:
-        lista = ["Cartiglio ISO", "Cartiglio Standard", "Cartiglio Ridotto"]
-    
-    if "Nessuno" not in lista:
-        lista.append("Nessuno")
-        
-    return lista
+    return {
+        "cartigli": sorted(list(cartigli)),
+        "bordi": sorted(list(bordi))
+    }
+
+
+def get_available_title_blocks(inv_app=None) -> List[str]:
+    """
+    Fornisce la lista combinata per il menu a tendina della UI:
+    Include sia le definizioni di Cartiglio che eventuali definizioni di Bordo
+    (es. 'No Contorno') trovate nei disegni aperti, più 'Nessuno'.
+    """
+    res = get_available_drawing_resources(inv_app)
+    elenco = []
+
+    # Cartigli trovati
+    for c in res["cartigli"]:
+        if c not in elenco:
+            elenco.append(c)
+
+    # Bordi trovati (es. "No Contorno", "Bordo standard")
+    for b in res["bordi"]:
+        if b not in elenco:
+            elenco.append(b)
+
+    if not elenco:
+        elenco = ["Cartiglio ISO", "Cartiglio Standard", "No Contorno"]
+
+    if "Nessuno" not in elenco:
+        elenco.append("Nessuno")
+
+    return elenco
+
+
+def _trova_disegno_sorgente_risorsa(inv_app, nome_risorsa: str) -> Tuple[Optional[Any], str]:
+    """Cerca in quale disegno aperto è contenuta la risorsa (se in TitleBlock o Border)."""
+    nome_norm = nome_risorsa.strip().lower()
+    for i in range(1, inv_app.Documents.Count + 1):
+        doc = inv_app.Documents.Item(i)
+        if doc.DocumentType == kDrawingDocumentObject:
+            # Cerca tra i cartigli
+            try:
+                for j in range(1, doc.TitleBlockDefinitions.Count + 1):
+                    tb = doc.TitleBlockDefinitions.Item(j)
+                    if tb.Name.strip().lower() == nome_norm:
+                        return tb, "titleblock"
+            except Exception:
+                pass
+            # Cerca tra i bordi
+            try:
+                for j in range(1, doc.BorderDefinitions.Count + 1):
+                    bd = doc.BorderDefinitions.Item(j)
+                    if bd.Name.strip().lower() == nome_norm:
+                        return bd, "border"
+            except Exception:
+                pass
+    return None, "none"
 
 
 def crea_tavola_da_modello_attivo(
@@ -118,14 +185,7 @@ def crea_tavola_da_modello_attivo(
 ) -> Dict[str, Any]:
     """
     Crea una nuova messa in tavola (.idw / .dwg) partendo dal modello 3D attivo (.ipt o .iam).
-    
-    Parametri:
-    - formato_foglio: "A2", "A3", "A4", "A5" (default "A3")
-    - orientamento: "Orizzontale" (Landscape) o "Verticale" (Portrait)
-    - nome_cartiglio: Nome del cartiglio desiderato (oppure None per default, o "Nessuno")
-    - scala: Scala della vista base (default 1.0 per 1:1, oppure calcolata automaticamente)
-    - test_mode: Se True, simula l'operazione senza chiamare Inventor COM
-    - template_path: Percorso opzionale al template .idw aziendale
+    Configura foglio, bordi, cartigli ed inserisce la vista frontale del solido centrata.
     """
     resoconto = {
         "successo": False,
@@ -140,7 +200,7 @@ def crea_tavola_da_modello_attivo(
         resoconto["successo"] = True
         resoconto["dettagli"] = (
             f"Simulazione creazione tavola superata: Foglio {formato_foglio} {orientamento}, "
-            f"Cartiglio: '{nome_cartiglio or 'Default'}', Scala: {scala}"
+            f"Cartiglio/Bordo: '{nome_cartiglio or 'Default'}', Scala: {scala}"
         )
         return resoconto
 
@@ -160,7 +220,6 @@ def crea_tavola_da_modello_attivo(
         return resoconto
 
     if model_doc is None:
-        # Cerca tra i documenti aperti se ce n'è almeno una parte o assieme
         try:
             for i in range(1, inv_app.Documents.Count + 1):
                 d = inv_app.Documents.Item(i)
@@ -185,7 +244,7 @@ def crea_tavola_da_modello_attivo(
         resoconto["errore"] = f"Impossibile creare il nuovo documento disegno: {e}"
         return resoconto
 
-    # 3. Transazione di configurazione foglio, cartiglio e vista base
+    # 3. Configurazione Foglio, Cartiglio/Bordo e Vista Principale
     trans = inv_app.TransactionManager.StartTransaction(draw_doc, "Copilot_CreaTavolaDaModello")
     try:
         sheet = draw_doc.ActiveSheet
@@ -204,50 +263,121 @@ def crea_tavola_da_modello_attivo(
         except Exception:
             pass
 
-        # 3.2 Gestione Cartiglio
-        if nome_cartiglio:
-            if nome_cartiglio.strip().lower() == "nessuno":
-                if sheet.TitleBlock:
-                    sheet.TitleBlock.Delete()
-            else:
-                # Controlla se la definizione esiste nel documento disegno
-                target_def = None
-                try:
-                    for k in range(1, draw_doc.TitleBlockDefinitions.Count + 1):
-                        tb_def = draw_doc.TitleBlockDefinitions.Item(k)
-                        if tb_def.Name.strip().lower() == nome_cartiglio.strip().lower():
-                            target_def = tb_def
-                            break
-                except Exception:
-                    pass
+        # Per formato A5: usa dimensioni personalizzate esplicite in cm
+        if formato_foglio.upper() == "A5":
+            try:
+                sheet.Size = kCustomDrawingSheetSize
+                if orientation_enum == kLandscapePageOrientation:
+                    sheet.Width = 21.0
+                    sheet.Height = 14.8
+                else:
+                    sheet.Width = 14.8
+                    sheet.Height = 21.0
+            except Exception:
+                pass
 
-                if target_def:
+        # 3.2 Gestione Cartiglio & Bordo
+        applicato_cartiglio = "Nessuno"
+        applicato_bordo = "Predefinito"
+
+        if nome_cartiglio:
+            nome_c_clean = nome_cartiglio.strip()
+            nome_c_lower = nome_c_clean.lower()
+
+            if nome_c_lower == "nessuno":
+                if sheet.TitleBlock:
                     try:
-                        if sheet.TitleBlock:
-                            sheet.TitleBlock.Delete()
-                        sheet.AddTitleBlock(target_def)
+                        sheet.TitleBlock.Delete()
+                    except Exception:
+                        pass
+                applicato_cartiglio = "Nessuno"
+            else:
+                # Ispezione risorsa: è un cartiglio o un bordo?
+                source_def, def_kind = _trova_disegno_sorgente_risorsa(inv_app, nome_c_clean)
+
+                if def_kind == "border" or "contorno" in nome_c_lower or "bordo" in nome_c_lower:
+                    # È un Bordo (es. "No Contorno")!
+                    # Se non presente nel nuovo documento disegno, copialo via CopyTo
+                    target_b_def = None
+                    try:
+                        for b_idx in range(1, draw_doc.BorderDefinitions.Count + 1):
+                            bd = draw_doc.BorderDefinitions.Item(b_idx)
+                            if bd.Name.strip().lower() == nome_c_lower:
+                                target_b_def = bd
+                                break
                     except Exception:
                         pass
 
+                    if target_b_def is None and source_def is not None:
+                        try:
+                            target_b_def = source_def.CopyTo(draw_doc, True)
+                        except Exception:
+                            pass
+
+                    # Applica il bordo al foglio
+                    if target_b_def:
+                        try:
+                            if sheet.Border:
+                                sheet.Border.Delete()
+                            sheet.AddBorder(target_b_def)
+                            applicato_bordo = target_b_def.Name
+                        except Exception:
+                            pass
+                    elif "no contorno" in nome_c_lower or "senza bordo" in nome_c_lower:
+                        # Se è specificato "No Contorno" e non c'è una definizione grafica, rimuove il bordo
+                        try:
+                            if sheet.Border:
+                                sheet.Border.Delete()
+                            applicato_bordo = "Rimosso (Nessun Contorno)"
+                        except Exception:
+                            pass
+
+                else:
+                    # È un Cartiglio (TitleBlock)
+                    target_tb_def = None
+                    try:
+                        for tb_idx in range(1, draw_doc.TitleBlockDefinitions.Count + 1):
+                            tbd = draw_doc.TitleBlockDefinitions.Item(tb_idx)
+                            if tbd.Name.strip().lower() == nome_c_lower:
+                                target_tb_def = tbd
+                                break
+                    except Exception:
+                        pass
+
+                    if target_tb_def is None and source_def is not None:
+                        try:
+                            target_tb_def = source_def.CopyTo(draw_doc, True)
+                        except Exception:
+                            pass
+
+                    if target_tb_def:
+                        try:
+                            if sheet.TitleBlock:
+                                sheet.TitleBlock.Delete()
+                            sheet.AddTitleBlock(target_tb_def)
+                            applicato_cartiglio = target_tb_def.Name
+                        except Exception:
+                            pass
+
         # 3.3 Inserimento Vista Base Principale (Frontale)
-        # Calcolo punto centrale del foglio
         center_x = sheet.Width / 2.0
         center_y = sheet.Height / 2.0
         tg = inv_app.TransientGeometry
         placement_pt = tg.CreatePoint2d(center_x, center_y)
 
-        # Inserimento vista
+        # Inserimento vista base collegata al modello 3D attivo
         drawing_views = sheet.DrawingViews
         base_view = drawing_views.AddBaseView(
             model_doc,
             placement_pt,
             scala,
             kFrontViewOrientation,
-            kHiddenLineDrawingViewStyle
+            kHiddenLineRemovedDrawingViewStyle
         )
 
         trans.End()
 
+        # Aggiornamento e Fit dello schermo
         try:
             draw_doc.Update2(True)
         except Exception:
@@ -256,12 +386,18 @@ def crea_tavola_da_modello_attivo(
             except Exception:
                 pass
 
+        try:
+            inv_app.ActiveView.Fit()
+        except Exception:
+            pass
+
         resoconto["successo"] = True
         resoconto["dettagli"] = (
-            f"Tavola 2D creata con successo per '{model_doc.DisplayName}'!\n"
-            f"- Foglio: {formato_foglio} ({orientamento})\n"
-            f"- Cartiglio: {sheet.TitleBlock.Name if sheet.TitleBlock else 'Nessuno'}\n"
-            f"- Vista Principale: {base_view.Name} (Scala {base_view.ScaleString})"
+            f"Tavola 2D generata con successo per '{model_doc.DisplayName}'!\n"
+            f"- Foglio: {formato_foglio} ({orientamento}) [Larghezza: {sheet.Width:.1f} cm, Altezza: {sheet.Height:.1f} cm]\n"
+            f"- Bordo: {applicato_bordo}\n"
+            f"- Cartiglio: {sheet.TitleBlock.Name if sheet.TitleBlock else applicato_cartiglio}\n"
+            f"- Vista Principale: {base_view.Name} (Scala {base_view.ScaleString}, Orientamento: Frontale)"
         )
         return resoconto
 
