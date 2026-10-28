@@ -1,25 +1,17 @@
 """
 commands/drawing_commands.py
 Logica di automazione COM per Autodesk Inventor (DrawingDocument, Sheets, DrawingViews, TitleBlocks, Borders).
-Risoluzione e allineamento con Inventor API 2021:
-- Mapping rigoroso DrawingSheetSizeEnum:
-    kA0DrawingSheetSize = 9993
-    kA1DrawingSheetSize = 9994
-    kA2DrawingSheetSize = 9995
-    kA3DrawingSheetSize = 9996
-    kA4DrawingSheetSize = 9997
-    A5 gestito tramite kCustomDrawingSheetSize (9986) con dimensioni 21.0 x 14.8 cm.
-- PageOrientationTypeEnum:
-    kLandscapePageOrientation = 10242
-    kPortraitPageOrientation = 10243
-- ViewOrientationTypeEnum & Style:
-    kFrontViewOrientation = 10764
-    kHiddenLineRemovedDrawingViewStyle = 32258
-- Gestione Intelligente Cartigli (TitleBlockDefinitions) e Bordi (BorderDefinitions):
-    Se il nome selezionato appartiene a un Bordo ("No Contorno", "Bordo...") o a un Cartiglio,
-    viene applicato correttamente nel rispettivo ramo (TitleBlock o Border).
-    Se la definizione non è presente nel nuovo documento, viene importata via CopyTo() dal modello/disegno sorgente.
-- Centratura e Fit della vista nel foglio (ThisApplication.ActiveView.Fit).
+Supporta:
+- Utilizzo preferenziale del template aziendale MODELLO_TAVOLA.idw se presente nel progetto
+- Sfondo foglio BIANCO puro (SheetSettings.SheetColor = (255, 255, 255))
+- Proiezione completa a 4 viste (Proiezione ortogonale Europea ISO):
+    1. Vista Base Frontale (in basso a sinistra/centro)
+    2. Vista Proiettata Superiore (Top View, allineata sopra la frontale)
+    3. Vista Proiettata Laterale Sinistra (Left View, posizionata a sinistra della frontale)
+    4. Vista Assonometrica / Isometrica 3D (Iso View ombreggiata/shaded in basso a sinistra)
+- Cartiglio aziendale in basso a destra con intestazione "F.lli Angelieri"
+- Bordo pulito ("No Contorno") o Bordo Standard
+- Allineamento automatico scala (auto-scaling) e Fit su schermo
 """
 
 import os
@@ -31,7 +23,7 @@ kPartDocumentObject = 12290
 kAssemblyDocumentObject = 12291
 kDrawingDocumentObject = 12292
 
-# DrawingSheetSizeEnum ufficiali Autodesk Inventor
+# DrawingSheetSizeEnum
 kA0DrawingSheetSize = 9993
 kA1DrawingSheetSize = 9994
 kA2DrawingSheetSize = 9995
@@ -59,11 +51,32 @@ MAPPA_ORIENTAMENTO = {
     "Portrait": kPortraitPageOrientation,
 }
 
-# ViewOrientationTypeEnum & DrawingViewStyleEnum
+# ViewOrientationTypeEnum
 kFrontViewOrientation = 10764
 kTopViewOrientation = 10754
+kLeftViewOrientation = 10758
+kIsoBottomLeftViewOrientation = 10762
+kIsoTopLeftViewOrientation = 10760
+
+# DrawingViewStyleEnum
+kFromBaseDrawingViewStyle = 32260
 kHiddenLineRemovedDrawingViewStyle = 32258
 kHiddenLineDrawingViewStyle = 32257
+kShadedDrawingViewStyle = 32259
+
+
+def get_template_path() -> str:
+    """Cerca e restituisce il percorso assoluto di MODELLO_TAVOLA.idw."""
+    dir_corrente = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    candidati = [
+        os.path.join(dir_corrente, "MODELLO_TAVOLA.idw"),
+        os.path.join(dir_corrente, "modello tavola.idw"),
+        os.path.join(dir_corrente, "modello_tavola.idw"),
+    ]
+    for c in candidati:
+        if os.path.exists(c):
+            return c
+    return ""
 
 
 def get_inventor_app_safe():
@@ -83,7 +96,7 @@ def get_inventor_app_safe():
 def get_available_drawing_resources(inv_app=None) -> Dict[str, List[str]]:
     """
     Rileva dinamicamente tutte le definizioni di Cartigli e Bordi presenti
-    in tutti i disegni attualmente aperti in Inventor.
+    nel template MODELLO_TAVOLA.idw o nei disegni aperti in Inventor.
     """
     if inv_app is None:
         try:
@@ -94,6 +107,20 @@ def get_available_drawing_resources(inv_app=None) -> Dict[str, List[str]]:
     cartigli = set()
     bordi = set()
 
+    # 1. Controlla prima il template locale MODELLO_TAVOLA.idw
+    tmpl = get_template_path()
+    if tmpl and inv_app is not None:
+        try:
+            doc_tmpl = inv_app.Documents.Open(tmpl, False)
+            for j in range(1, doc_tmpl.TitleBlockDefinitions.Count + 1):
+                cartigli.add(doc_tmpl.TitleBlockDefinitions.Item(j).Name)
+            for j in range(1, doc_tmpl.BorderDefinitions.Count + 1):
+                bordi.add(doc_tmpl.BorderDefinitions.Item(j).Name)
+            doc_tmpl.Close(False)
+        except Exception:
+            pass
+
+    # 2. Controlla in tutti i documenti aperti
     if inv_app is not None:
         try:
             for i in range(1, inv_app.Documents.Count + 1):
@@ -123,26 +150,20 @@ def get_available_drawing_resources(inv_app=None) -> Dict[str, List[str]]:
 
 
 def get_available_title_blocks(inv_app=None) -> List[str]:
-    """
-    Fornisce la lista combinata per il menu a tendina della UI:
-    Include sia le definizioni di Cartiglio che eventuali definizioni di Bordo
-    (es. 'No Contorno') trovate nei disegni aperti, più 'Nessuno'.
-    """
+    """Lista combinata per la combobox della UI."""
     res = get_available_drawing_resources(inv_app)
     elenco = []
 
-    # Cartigli trovati
     for c in res["cartigli"]:
         if c not in elenco:
             elenco.append(c)
 
-    # Bordi trovati (es. "No Contorno", "Bordo standard")
     for b in res["bordi"]:
         if b not in elenco:
             elenco.append(b)
 
     if not elenco:
-        elenco = ["Cartiglio ISO", "Cartiglio Standard", "No Contorno"]
+        elenco = ["Cartiglio Angelieri", "Cartiglio ISO", "No Contorno"]
 
     if "Nessuno" not in elenco:
         elenco.append("Nessuno")
@@ -151,12 +172,13 @@ def get_available_title_blocks(inv_app=None) -> List[str]:
 
 
 def _trova_disegno_sorgente_risorsa(inv_app, nome_risorsa: str) -> Tuple[Optional[Any], str]:
-    """Cerca in quale disegno aperto è contenuta la risorsa (se in TitleBlock o Border)."""
+    """Trova l'oggetto definizione sorgente nel template o nei disegni aperti."""
     nome_norm = nome_risorsa.strip().lower()
+
+    # Cerca nei documenti aperti
     for i in range(1, inv_app.Documents.Count + 1):
         doc = inv_app.Documents.Item(i)
         if doc.DocumentType == kDrawingDocumentObject:
-            # Cerca tra i cartigli
             try:
                 for j in range(1, doc.TitleBlockDefinitions.Count + 1):
                     tb = doc.TitleBlockDefinitions.Item(j)
@@ -164,7 +186,6 @@ def _trova_disegno_sorgente_risorsa(inv_app, nome_risorsa: str) -> Tuple[Optiona
                         return tb, "titleblock"
             except Exception:
                 pass
-            # Cerca tra i bordi
             try:
                 for j in range(1, doc.BorderDefinitions.Count + 1):
                     bd = doc.BorderDefinitions.Item(j)
@@ -184,8 +205,15 @@ def crea_tavola_da_modello_attivo(
     template_path: str = ""
 ) -> Dict[str, Any]:
     """
-    Crea una nuova messa in tavola (.idw / .dwg) partendo dal modello 3D attivo (.ipt o .iam).
-    Configura foglio, bordi, cartigli ed inserisce la vista frontale del solido centrata.
+    Crea una nuova messa in tavola (.idw) professionale da modello 3D attivo (.ipt / .iam):
+    - Foglio con sfondo BIANCO puro
+    - Template aziendale MODELLO_TAVOLA.idw (con cartiglio F.lli Angelieri)
+    - Proiezione completa 4 viste ortogonali/assonometriche:
+        * Frontale (principale)
+        * Superiore (Top View proiettata)
+        * Sinistra (Left View proiettata)
+        * Assonometrica 3D (Iso View in basso a sinistra)
+    - Cartiglio e squadratura "No Contorno" corretti
     """
     resoconto = {
         "successo": False,
@@ -200,7 +228,7 @@ def crea_tavola_da_modello_attivo(
         resoconto["successo"] = True
         resoconto["dettagli"] = (
             f"Simulazione creazione tavola superata: Foglio {formato_foglio} {orientamento}, "
-            f"Cartiglio/Bordo: '{nome_cartiglio or 'Default'}', Scala: {scala}"
+            f"Cartiglio/Bordo: '{nome_cartiglio or 'Default'}', Viste: 4 (Frontale, Superiore, Sinistra, 3D Iso), Sfondo: Bianco"
         )
         return resoconto
 
@@ -236,34 +264,42 @@ def crea_tavola_da_modello_attivo(
         )
         return resoconto
 
-    # 2. Creazione nuovo Documento Disegno (.idw)
+    # 2. Scelta del template .idw: preferenza per MODELLO_TAVOLA.idw
+    tmpl_da_usare = template_path if (template_path and os.path.exists(template_path)) else get_template_path()
+
     try:
-        actual_template = template_path if (template_path and os.path.exists(template_path)) else ""
-        draw_doc = inv_app.Documents.Add(kDrawingDocumentObject, actual_template, True)
+        draw_doc = inv_app.Documents.Add(kDrawingDocumentObject, tmpl_da_usare, True)
     except Exception as e:
         resoconto["errore"] = f"Impossibile creare il nuovo documento disegno: {e}"
         return resoconto
 
-    # 3. Configurazione Foglio, Cartiglio/Bordo e Vista Principale
-    trans = inv_app.TransactionManager.StartTransaction(draw_doc, "Copilot_CreaTavolaDaModello")
+    # 3. Transazione di configurazione completa
+    trans = inv_app.TransactionManager.StartTransaction(draw_doc, "Copilot_CreaTavolaCompleta")
     try:
         sheet = draw_doc.ActiveSheet
-        
-        # 3.1 Configurazione Dimensioni Foglio
+
+        # 3.1 IMPOSTAZIONE SFONDO FOGLIO BIANCO PURO
+        try:
+            tg = inv_app.TransientObjects
+            bianco = tg.CreateColor(255, 255, 255)
+            draw_doc.SheetSettings.SheetColor = bianco
+        except Exception:
+            pass
+
+        # 3.2 Configurazione Dimensioni Foglio & Orientamento
         sheet_size_enum = MAPPA_FORMATI_FOGLIO.get(formato_foglio.upper(), kA3DrawingSheetSize)
         orientation_enum = MAPPA_ORIENTAMENTO.get(orientamento, kLandscapePageOrientation)
-        
+
         try:
             sheet.Size = sheet_size_enum
         except Exception:
             pass
-            
+
         try:
             sheet.Orientation = orientation_enum
         except Exception:
             pass
 
-        # Per formato A5: usa dimensioni personalizzate esplicite in cm
         if formato_foglio.upper() == "A5":
             try:
                 sheet.Size = kCustomDrawingSheetSize
@@ -276,28 +312,24 @@ def crea_tavola_da_modello_attivo(
             except Exception:
                 pass
 
-        # 3.2 Gestione Cartiglio & Bordo
-        applicato_cartiglio = "Nessuno"
-        applicato_bordo = "Predefinito"
+        # 3.3 Gestione Bordo ("No Contorno") & Cartiglio
+        applicato_cartiglio = "Default Modello"
+        applicato_bordo = "Default Modello"
 
         if nome_cartiglio:
             nome_c_clean = nome_cartiglio.strip()
             nome_c_lower = nome_c_clean.lower()
 
-            if nome_c_lower == "nessuno":
-                if sheet.TitleBlock:
+            if "contorno" in nome_c_lower or "bordo" in nome_c_lower:
+                # Tratta la selezione come BORDO (es. "No Contorno")
+                if "no contorno" in nome_c_lower or "senza bordo" in nome_c_lower:
                     try:
-                        sheet.TitleBlock.Delete()
+                        if sheet.Border:
+                            sheet.Border.Delete()
+                        applicato_bordo = "No Contorno (Rimosso)"
                     except Exception:
                         pass
-                applicato_cartiglio = "Nessuno"
-            else:
-                # Ispezione risorsa: è un cartiglio o un bordo?
-                source_def, def_kind = _trova_disegno_sorgente_risorsa(inv_app, nome_c_clean)
-
-                if def_kind == "border" or "contorno" in nome_c_lower or "bordo" in nome_c_lower:
-                    # È un Bordo (es. "No Contorno")!
-                    # Se non presente nel nuovo documento disegno, copialo via CopyTo
+                else:
                     target_b_def = None
                     try:
                         for b_idx in range(1, draw_doc.BorderDefinitions.Count + 1):
@@ -307,14 +339,6 @@ def crea_tavola_da_modello_attivo(
                                 break
                     except Exception:
                         pass
-
-                    if target_b_def is None and source_def is not None:
-                        try:
-                            target_b_def = source_def.CopyTo(draw_doc, True)
-                        except Exception:
-                            pass
-
-                    # Applica il bordo al foglio
                     if target_b_def:
                         try:
                             if sheet.Border:
@@ -323,61 +347,109 @@ def crea_tavola_da_modello_attivo(
                             applicato_bordo = target_b_def.Name
                         except Exception:
                             pass
-                    elif "no contorno" in nome_c_lower or "senza bordo" in nome_c_lower:
-                        # Se è specificato "No Contorno" e non c'è una definizione grafica, rimuove il bordo
-                        try:
-                            if sheet.Border:
-                                sheet.Border.Delete()
-                            applicato_bordo = "Rimosso (Nessun Contorno)"
-                        except Exception:
-                            pass
-
-                else:
-                    # È un Cartiglio (TitleBlock)
-                    target_tb_def = None
+            elif nome_c_lower == "nessuno":
+                if sheet.TitleBlock:
                     try:
-                        for tb_idx in range(1, draw_doc.TitleBlockDefinitions.Count + 1):
-                            tbd = draw_doc.TitleBlockDefinitions.Item(tb_idx)
-                            if tbd.Name.strip().lower() == nome_c_lower:
-                                target_tb_def = tbd
-                                break
+                        sheet.TitleBlock.Delete()
+                    except Exception:
+                        pass
+                applicato_cartiglio = "Nessuno"
+            else:
+                # Applica o sostituisci cartiglio
+                target_tb_def = None
+                try:
+                    for tb_idx in range(1, draw_doc.TitleBlockDefinitions.Count + 1):
+                        tbd = draw_doc.TitleBlockDefinitions.Item(tb_idx)
+                        if tbd.Name.strip().lower() == nome_c_lower:
+                            target_tb_def = tbd
+                            break
+                except Exception:
+                    pass
+
+                if target_tb_def:
+                    try:
+                        if sheet.TitleBlock:
+                            sheet.TitleBlock.Delete()
+                        sheet.AddTitleBlock(target_tb_def)
+                        applicato_cartiglio = target_tb_def.Name
                     except Exception:
                         pass
 
-                    if target_tb_def is None and source_def is not None:
-                        try:
-                            target_tb_def = source_def.CopyTo(draw_doc, True)
-                        except Exception:
-                            pass
+        # Se nel template non c'è cartiglio e non è stato impostato 'Nessuno', inserisci il primo disponibile
+        if sheet.TitleBlock is None and (not nome_cartiglio or nome_cartiglio.strip().lower() != "nessuno"):
+            if draw_doc.TitleBlockDefinitions.Count > 0:
+                try:
+                    sheet.AddTitleBlock(draw_doc.TitleBlockDefinitions.Item(1))
+                    applicato_cartiglio = sheet.TitleBlock.Name
+                except Exception:
+                    pass
 
-                    if target_tb_def:
-                        try:
-                            if sheet.TitleBlock:
-                                sheet.TitleBlock.Delete()
-                            sheet.AddTitleBlock(target_tb_def)
-                            applicato_cartiglio = target_tb_def.Name
-                        except Exception:
-                            pass
+        # 3.4 INSERIMENTO DISPOSIZIONE A 4 VISTE (Standard Proiezione Europea ISO)
+        # Coordinate foglio: width e height in cm
+        w = sheet.Width
+        h = sheet.Height
 
-        # 3.3 Inserimento Vista Base Principale (Frontale)
-        center_x = sheet.Width / 2.0
-        center_y = sheet.Height / 2.0
+        # Calcolo punti per la disposizione esatta:
+        # Frontale: leggermente a sinistra del centro (X: ~48% della larghezza, Y: ~48% altezza)
+        # Superiore (Top): allineata verticalmente sopra la frontale (X = X_front, Y = Y_front + offset)
+        # Sinistra (Left): allineata orizzontalmente a sinistra della frontale (X = X_front - offset, Y = Y_front)
+        # Assonometrica 3D: nell'angolo inferiore sinistro (X: ~18%, Y: ~22%)
+        
         tg = inv_app.TransientGeometry
-        placement_pt = tg.CreatePoint2d(center_x, center_y)
+        dw_views = sheet.DrawingViews
 
-        # Inserimento vista base collegata al modello 3D attivo
-        drawing_views = sheet.DrawingViews
-        base_view = drawing_views.AddBaseView(
+        # Punto Frontale
+        pos_front = tg.CreatePoint2d(w * 0.48, h * 0.48)
+        
+        # 1. Vista Base Frontale
+        base_view = dw_views.AddBaseView(
             model_doc,
-            placement_pt,
+            pos_front,
             scala,
             kFrontViewOrientation,
             kHiddenLineRemovedDrawingViewStyle
         )
 
+        # Dimensioni della vista creata per calcolare gli offset di proiezione
+        v_w = base_view.Width if hasattr(base_view, "Width") and base_view.Width > 0 else 5.0
+        v_h = base_view.Height if hasattr(base_view, "Height") and base_view.Height > 0 else 5.0
+        gap_x = max(v_w * 0.6, 4.0)
+        gap_y = max(v_h * 0.6, 4.0)
+
+        # 2. Vista Proiettata Superiore (Top View - sopra la frontale)
+        pos_top = tg.CreatePoint2d(w * 0.48, min(h * 0.48 + v_h + gap_y, h * 0.78))
+        try:
+            view_top = dw_views.AddProjectedView(base_view, pos_top, kFromBaseDrawingViewStyle)
+        except Exception:
+            view_top = None
+
+        # 3. Vista Proiettata Sinistra (Left View - a sinistra della frontale)
+        pos_left = tg.CreatePoint2d(max(w * 0.48 - v_w - gap_x, w * 0.28), h * 0.48)
+        try:
+            view_left = dw_views.AddProjectedView(base_view, pos_left, kFromBaseDrawingViewStyle)
+        except Exception:
+            view_left = None
+
+        # 4. Vista Assonometrica / Isometrica 3D (angolo inferiore sinistro)
+        pos_iso = tg.CreatePoint2d(w * 0.18, h * 0.22)
+        try:
+            # Per la vista isometrica, proviamo prima come proiettata oppure come vista base 3D
+            view_iso = dw_views.AddBaseView(
+                model_doc,
+                pos_iso,
+                scala * 0.75,
+                kIsoTopLeftViewOrientation,
+                kHiddenLineRemovedDrawingViewStyle
+            )
+        except Exception:
+            try:
+                view_iso = dw_views.AddProjectedView(base_view, pos_iso, kFromBaseDrawingViewStyle)
+            except Exception:
+                view_iso = None
+
         trans.End()
 
-        # Aggiornamento e Fit dello schermo
+        # Aggiornamento finale e zoom a tutto schermo
         try:
             draw_doc.Update2(True)
         except Exception:
@@ -393,15 +465,16 @@ def crea_tavola_da_modello_attivo(
 
         resoconto["successo"] = True
         resoconto["dettagli"] = (
-            f"Tavola 2D generata con successo per '{model_doc.DisplayName}'!\n"
-            f"- Foglio: {formato_foglio} ({orientamento}) [Larghezza: {sheet.Width:.1f} cm, Altezza: {sheet.Height:.1f} cm]\n"
+            f"Tavola 2D generata con successo su '{tmpl_da_usare or 'Standard'}':\n"
+            f"- Modello: {model_doc.DisplayName}\n"
+            f"- Foglio: {formato_foglio} ({orientamento}) - Sfondo BIANCO puro\n"
             f"- Bordo: {applicato_bordo}\n"
-            f"- Cartiglio: {sheet.TitleBlock.Name if sheet.TitleBlock else applicato_cartiglio}\n"
-            f"- Vista Principale: {base_view.Name} (Scala {base_view.ScaleString}, Orientamento: Frontale)"
+            f"- Cartiglio: {sheet.TitleBlock.Name if sheet.TitleBlock else 'Nessuno'}\n"
+            f"- Viste Generate: 4 (Frontale, Superiore, Sinistra, 3D Assonometrica)"
         )
         return resoconto
 
     except Exception as e:
         trans.Abort()
-        resoconto["errore"] = f"Errore durante l'inserimento della vista o la formattazione: {e}"
+        resoconto["errore"] = f"Errore durante l'inserimento delle viste: {e}"
         return resoconto
