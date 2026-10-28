@@ -114,7 +114,8 @@ class InventorCopilotApp(ctk.CTk):
         self.drawing_view = DrawingTab(
             self.tab_drawing_ui,
             log_callback=self.stampa_log,
-            execute_drawing_callback=self.esegui_creazione_tavola
+            execute_drawing_callback=self.esegui_creazione_tavola,
+            populate_titleblock_callback=self.esegui_compilazione_cartiglio
         )
         self.drawing_view.pack(fill="both", expand=True)
 
@@ -221,6 +222,24 @@ class InventorCopilotApp(ctk.CTk):
                     self.stampa_log(f"[ERRORE - Messa in Tavola] {res.get('errore')}")
             except Exception as e:
                 self.stampa_log(f"[ECCEZIONE Messa in Tavola] {e}")
+            finally:
+                pythoncom.CoUninitialize()
+
+        threading.Thread(target=_worker, daemon=True).start()
+
+    def esegui_compilazione_cartiglio(self):
+        self.stampa_log("\n>>> AZIONE: Compilazione cartiglio tavola attiva da modello 3D...")
+        def _worker():
+            pythoncom.CoInitialize()
+            try:
+                from commands.drawing_commands import compila_cartiglio_disegno
+                res = compila_cartiglio_disegno(test_mode=False)
+                if res.get("successo"):
+                    self.stampa_log(f"[OK - Cartiglio]\n{res.get('dettagli')}")
+                else:
+                    self.stampa_log(f"[ERRORE - Cartiglio] {res.get('errore')}")
+            except Exception as e:
+                self.stampa_log(f"[ECCEZIONE Cartiglio] {e}")
             finally:
                 pythoncom.CoUninitialize()
 

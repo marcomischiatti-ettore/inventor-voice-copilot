@@ -4,15 +4,22 @@ Scheda 'Messa in Tavola' per la gestione di disegni 2D (.idw / .dwg) da parti e 
 """
 
 import customtkinter as ctk
-from typing import Callable
+from typing import Callable, Optional
 from ui.dialogs.new_drawing_dialog import NewDrawingDialog
 
 class DrawingTab(ctk.CTkFrame):
-    def __init__(self, parent, log_callback: Callable[[str], None], execute_drawing_callback: Callable[[str, str, str], None]):
+    def __init__(
+        self,
+        parent,
+        log_callback: Callable[[str], None],
+        execute_drawing_callback: Callable[[str, str, str, str], None],
+        populate_titleblock_callback: Optional[Callable[[], None]] = None
+    ):
         super().__init__(parent, fg_color="transparent")
 
         self.log_callback = log_callback
         self.execute_drawing_callback = execute_drawing_callback
+        self.populate_titleblock_callback = populate_titleblock_callback
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)
@@ -40,26 +47,41 @@ class DrawingTab(ctk.CTkFrame):
 
         self.desc_label = ctk.CTkLabel(
             self.card_frame,
-            text="Crea automaticamente la messa in tavola per il componente o assieme attivo in Inventor, "
-                 "con calcolo scala, centratura vista e cartiglio personalizzato.",
+            text="Crea automaticamente la messa in tavola per il componente attivo, "
+                 "con calcolo scala, viste ortogonali e cartiglio aziendale auto-compilato.",
             font=ctk.CTkFont(size=12),
             text_color="#94a3b8",
-            wraplength=520,
+            wraplength=480,
             justify="left",
             anchor="w"
         )
         self.desc_label.grid(row=1, column=1, sticky="w", pady=(0, 15))
 
+        # Pulsanti d'azione (Crea Tavola & Compila Cartiglio)
+        self.btn_box = ctk.CTkFrame(self.card_frame, fg_color="transparent")
+        self.btn_box.grid(row=0, column=2, rowspan=2, padx=20, pady=15)
+
         self.btn_crea_tavola = ctk.CTkButton(
-            self.card_frame,
-            text="Crea Tavola da Modello Attivo",
+            self.btn_box,
+            text="Crea Tavola da 3D",
             font=ctk.CTkFont(size=13, weight="bold"),
-            height=42,
+            height=36,
             fg_color="#2563eb",
             hover_color="#1d4ed8",
             command=self.apri_dialog_nuova_tavola
         )
-        self.btn_crea_tavola.grid(row=0, column=2, rowspan=2, padx=25, pady=20)
+        self.btn_crea_tavola.pack(fill="x", pady=(0, 6))
+
+        self.btn_compila_cartiglio = ctk.CTkButton(
+            self.btn_box,
+            text="✍️ Compila Cartiglio Attivo",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            height=32,
+            fg_color="#10b981",
+            hover_color="#059669",
+            command=self.compila_cartiglio_click
+        )
+        self.btn_compila_cartiglio.pack(fill="x")
 
         # 2. Informazioni & Dettagli Operativi
         self.info_frame = ctk.CTkFrame(self, corner_radius=12, fg_color="#1e1e2d")
@@ -106,6 +128,10 @@ class DrawingTab(ctk.CTkFrame):
 
     def apri_dialog_nuova_tavola(self):
         NewDrawingDialog(self.winfo_toplevel(), on_confirm=self._on_drawing_confirmed)
+
+    def compila_cartiglio_click(self):
+        if self.populate_titleblock_callback:
+            self.populate_titleblock_callback()
 
     def _on_drawing_confirmed(self, formato: str, orientamento: str, cartiglio: str, bordo: str = "Bordo di default"):
         if self.execute_drawing_callback:

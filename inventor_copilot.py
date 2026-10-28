@@ -70,7 +70,10 @@ ROUTING_COMANDI = [
     (r'(?:sweep|estrusione\s+lungo|guida)', "sweep_path"),
 
     # Drawing (Messa in Tavola)
-    (r'(?:tavola|disegno|messa\s+in\s+tavola|crea\s+disegno|\.idw|\.dwg)', "drawing_create_from_active")
+    (r'(?:tavola|disegno|messa\s+in\s+tavola|crea\s+disegno|\.idw|\.dwg)', "drawing_create_from_active"),
+
+    # Compilazione Cartiglio
+    (r'(?:compila|compilalo|compilare|popola\s*cartiglio|aggiorna\s*cartiglio|cartiglio)', "drawing_populate_titleblock")
 ]
 
 
